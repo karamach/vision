@@ -2,16 +2,11 @@
 
 ## Introduction
 
-The goals of the project are the following
-..*Extract Histogram of Oriented Gradients and Color features on a labeled training set of images 
-..*Use extracted features from above to train an SVM classifier
-..*Implement a sliding window based search technique using the classifier to find vehicles
-..*Implement heat map based techniques to reduce false positives and track vehicles
-..*Validate the pipeline on a video stream to continuously detect vehicles
+The codebase implements a classifier for detecting vehicles in images. Histogram of Oriented Gradients and Color features on a labeled training set of images are used to train an SVM classifier. The output is then passed through a sliding window based search technique to detect potential candiates. Heat map based techniques are applied to the potential candidates to further reduce false positives and track vehicles.
 
 ## Feature Extraction
 
-Feature Extraction is done on both positive and negative image cases. An example of both types (one with car and one without car) can be seen below. The datasets used for training were non-vehicles/Extras, non-vehicles/GTI,  vehicles/GTI_Far, vehicles/GTI_left, vehicles/GTI_Middle_close, vehicles/GTI_Right and vehicles/KTTI_extracted.Two sets of features were used namely Histogram of Oriented Gradients and Color based spatial binning and histogram of color channels.
+Feature Extraction is done on both positive and negative image cases. An example of both types (one with car and one without car) can be seen below. The datasets used for training were non-vehicles/Extras, non-vehicles/GTI,  vehicles/GTI_Far, vehicles/GTI_left, vehicles/GTI_Middle_close, vehicles/GTI_Right and vehicles/KTTI_extracted.Two sets of features were used namely Histogram of Oriented Gradients and Color based spatial binning and histogram of color channels. Here is a link to the [data] (https://drive.google.com/open?id=0B3EkEy76sbi6eXJ2ZVhzanhYN0U)
 
 ## Histogram of oriented gradients
 
@@ -23,7 +18,7 @@ For color based features, spatial binning and color histogram for each of the ch
 
 ## Classifier
 
-Once the feature extraction is done, the next step is to use a classifier to classify the images based on the features. For this, an SVM classifier was used. The LinearSVC from sklearn was used for the SVM.  The code for constructing the classifier and its API is in classifer.py lines 1-30. The classifier interface provides three functions namely train, test and predict. Training is done by extracting features from both positive and negative images. The features are then scaled using a Standard Scaler and then split into train and test datasets. The classifier is then trained on the train dataset and evaluated on the test dataset. The accuracy score came out to be roughly 98. Code for this is in pipeline.py lines 29-40
+Once the feature extraction is done, the next step is to use a classifier to classify the images based on the features. For this, an SVM classifier was used. The LinearSVC from sklearn was used for the SVM.  The code for constructing the classifier and its API is in classifer.py lines 1-30. The classifier interface provides three functions namely train, test and predict. Training is done by extracting features from both positive and negative images. The features are then scaled using a Standard Scaler and then split into train and test datasets. The classifier is then trained on the train dataset and evaluated on the test dataset. The accuracy score came out to be roughly 98. 
 
 ## Sliding Window Search
 
@@ -34,9 +29,9 @@ Below are examples of the candidate boxes that were generated for some of the im
 
 ## Video
 
-Here is a link to the final video . For handling false positives, a heatmap based approach was implemented. The heatmap keeps track of pixels that appear in boxes in multiple frames and applies a thresholding to pick blobs that appear in multiple frames. For applying thresholding, a percentage of the maximum count was used. scipy.ndimage.measurements.label() was used to identify the blobs and they were used to detect the vehicles. Some frames and the corresponding heatmaps are shown below:
+For handling false positives, a heatmap based approach was implemented. The heatmap keeps track of pixels that appear in boxes in multiple frames and applies a thresholding to pick blobs that appear in multiple frames. For applying thresholding, a percentage of the maximum count was used. scipy.ndimage.measurements.label() was used to identify the blobs and they were used to detect the vehicles. Some frames and the corresponding heatmaps are shown below:
 
-## Challenges and Future work
+## Future work
 
 The most challenging part was towards the last part of the pipeline to adjust the parameters to reduce false positives while at the same time ensuring good classification and bounding box accuracy. A lot of time had to be spent tuning the various parameters to achieve some accuracy and still the output is not as accurate as I would have liked it to be. One of the situations the pipeline might face is if the cars make rapid movements or if the current car slows down suddenly, then the tracking code might not work as robustly. This needs to be handled in some way. Maybe in future some other approaches like deep learning etc can be explored. I also shall work on improving the performance of the pipeline and see how it can be done in real time.
 
