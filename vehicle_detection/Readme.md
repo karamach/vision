@@ -8,6 +8,8 @@ The codebase implements a classifier for detecting vehicles in images. Histogram
 
 Feature Extraction is done on both positive and negative image cases. An example of both types (one with car and one without car) can be seen below. The datasets used for training were non-vehicles/Extras, non-vehicles/GTI,  vehicles/GTI_Far, vehicles/GTI_left, vehicles/GTI_Middle_close, vehicles/GTI_Right and vehicles/KTTI_extracted.Two sets of features were used namely Histogram of Oriented Gradients and Color based spatial binning and histogram of color channels. Here is a link to the [data] (https://drive.google.com/open?id=0B3EkEy76sbi6eXJ2ZVhzanhYN0U)
 
+![alt](https://github.com/karamach/vision/blob/karamach/vehicle_detection/vehicle_detection/images/train_data.png)
+
 ## Histogram of oriented gradients
 
 Histogram of oriented gradients is computed for  both positive (images with cars) and negative cases(no cars). Hog function from skimage.feature is used to compute the Hog features. In this project, hog features are computed for all channels. Some of the parameters that govern hog features are orientations, number of pixels to be considered per cell and number of cells per block. Various parameters and color channels to understand which combination works better. Below is an example HOG image for Channel 1 and the corresponding original image. The parameters used for this were orientation=9, pixels_per_cell=8, cells_per_block=2, channel=0.
