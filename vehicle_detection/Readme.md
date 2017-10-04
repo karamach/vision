@@ -8,7 +8,7 @@ The codebase implements a classifier for detecting vehicles in images. Histogram
 
 Feature Extraction is done on both positive and negative image cases. An example of both types (one with car and one without car) can be seen below. The datasets used for training were non-vehicles/Extras, non-vehicles/GTI,  vehicles/GTI_Far, vehicles/GTI_left, vehicles/GTI_Middle_close, vehicles/GTI_Right and vehicles/KTTI_extracted.Two sets of features were used namely Histogram of Oriented Gradients and Color based spatial binning and histogram of color channels. Here is a link to the [data] (https://drive.google.com/open?id=0B3EkEy76sbi6eXJ2ZVhzanhYN0U)
 
-![alt](https://github.com/karamach/vision/blob/karamach/vehicle_detection/vehicle_detection/images/train_data.png)
+![alt](https://github.com/karamach/vision/blob/karamach/vehicle_detection/vehicle_detection/images/train_data.png){:height="36px" width="36px"}
 
 ## Histogram of oriented gradients
 
