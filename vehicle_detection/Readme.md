@@ -39,15 +39,15 @@ Below are examples of the candidate boxes that were generated for some of the im
 
 For handling false positives, a heatmap based approach was implemented. The heatmap keeps track of pixels that appear in boxes in multiple frames and applies a thresholding to pick blobs that appear in multiple frames. For applying thresholding, a percentage of the maximum count was used. Some frames and the corresponding heatmaps are shown below:
 
-![alt](https://github.com/karamach/vision/blob/karamach/vehicle_detection/vehicle_detection/images/hm1.png)
-![alt](https://github.com/karamach/vision/blob/karamach/vehicle_detection/vehicle_detection/images/hm2.png)
-![alt](https://github.com/karamach/vision/blob/karamach/vehicle_detection/vehicle_detection/images/hm3.png)
-![alt](https://github.com/karamach/vision/blob/karamach/vehicle_detection/vehicle_detection/images/chm.png)
-![alt](https://github.com/karamach/vision/blob/karamach/vehicle_detection/vehicle_detection/images/bb.png)
+![alt](https://github.com/karamach/vision/blob/master/vehicle_detection/images/hm1.png)
+![alt](https://github.com/karamach/vision/blob/master/vehicle_detection/images/hm2.png)
+![alt](https://github.com/karamach/vision/blob/master/vehicle_detection/images/hm3.png)
+![alt](https://github.com/karamach/vision/blob/master/vehicle_detection/images/chm.png)
+![alt](https://github.com/karamach/vision/blob/master/vehicle_detection/images/bb.png)
 
 ## Video
 
-![alt](https://github.com/karamach/vision/blob/karamach/vehicle_detection/vehicle_detection/images/vid.png)
+![alt](https://github.com/karamach/vision/blob/master/vehicle_detection/images/vid.png)
 
 [link to video](https://drive.google.com/file/d/0B5e5oUCOCYhANURIbG1VM1djTzQ/view)
 
