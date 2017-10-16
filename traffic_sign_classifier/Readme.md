@@ -20,7 +20,7 @@ The code implements a simple CNN to classifiy images into traffic sign labels. T
 
 ## Data Set
 
-The input is pickled as train, valid and test sets. 
+The input is pickled as train, valid and test sets. The data can be downloaded [here](https://drive.google.com/open?id=0B5e5oUCOCYhAanlqNkFGV2oyNTA)
 
 Below are some stats for the dataset used for train and test
 * The size of training set is 34799
