@@ -67,11 +67,10 @@ rates were tried and .0009 seemed to give the best result.
 
 Initially with random normal distributions for the weights, the accuracy was very low. Once this was changed to truncated normal, the accuracy started improving. The final training , validation and test accuracies were 100, 95.2 and 93.5. Lower test accuracy could imply some overfitting.  Regularization or dropout could improve the model.
 
-Below are the five traffic images from the web namely: pedestrian, general caution, speed limit 60, speed limit 30 and road work. The background of these images seem very different from the ones in the test set.  Even after applying preprocessing, to convert these images into normalized 32x32 images, they look different from the images in the training data.
-The system would likely detect the speed limit and road work signs since they have a plain background.
+The system was tried on  five random traffic images from the web namely: pedestrian, general caution, speed limit 60, speed limit 30 and road work. 
 
-![alt text][img6] ![alt text][img7] ![alt text][img8]
-![alt text][img9] ![alt text][img10]
+![alt text][image6] ![alt text][image7] ![alt text][image8]
+![alt text][image9] ![alt text][image10]
 
 Here are the results of the prediction:
 
