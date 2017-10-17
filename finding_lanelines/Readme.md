@@ -29,9 +29,7 @@ The images were first preprocessed using grayscaling and gaussian smoothing. The
 Some results on lane line images are shown below with the lane lines marked in red. The accuracy of the algorithm seems to depend a lot on the hyperparameters like
 region of interest boundaries, hough min line length and max line gap, thresholds and limits on the kind of lines (based on slopes and coordinates) to be considered as candidates for the final lanes. One improvement could be to develop a framework to autotune these parameters based on large amount of tagged data. The current algorithm was manually tuned for steep turns or curves in the road, effects like shadows and less dark roads that make it difficult to detect lane lines.
 
-![alt text][image1] ![alt text][image2] ![alt text][image3]
-![alt text][image4] ![alt text][image5] ![alt text][image6]
-![alt text][image7] 
+![alt text][image3]
 
 A sample video output is shown below. For generating the video, ffmpeg needs to be in the src folder which can be downloaded from [here](https://www.ffmpeg.org/)
 
