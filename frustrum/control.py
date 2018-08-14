@@ -1,10 +1,41 @@
+import math
 
-class CameraRotController(Controllrt):
+class CameraTransControl(object):
 
-    def __init__(self, camera, rot_idx):
+    def __init__(self, camera, pos_idx, callback):
         self.camera = camera
-        self.rot_idx = rot_idx
-        
+        self.callback = callback
+        self.pos_idx = pos_idx
+
+    def update(self, val):
+        xyz = self.camera.curr_xyz
+        xyz[self.pos_idx] = val
+        self.camera.pose(self.camera.curr_ypr, xyz)
+        self.callback()
+
+class CameraRotControl(object):
+
+    def __init__(self, camera, angle_idx, callback):
+        self.camera = camera
+        self.callback = callback
+        self.angle_idx = angle_idx
+
     def update(self, val):
         ypr = self.camera.curr_ypr
-        ypr[self.rot_idx] = math.radians(val)
+        ypr[self.angle_idx] = math.radians(val)
+        self.camera.pose(ypr, self.camera.curr_xyz)
+        self.callback()
+
+class CameraFrustControl(object):
+
+    def __init__(self, camera, frust_idx, callback):
+        self.camera = camera
+        self.callback = callback
+        self.frust_idx = frust_idx
+
+    def update(self, val):
+        self.camera.frust_range[self.frust_idx] = val
+        self.camera.pose( self.camera.curr_ypr,  self.camera.curr_xyz)
+        self.callback()
+
+                

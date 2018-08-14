@@ -53,27 +53,5 @@ class Camera(object):
             self.max_frust, self.curr_origin, self.curr_min_frust,
             self.curr_max_frust, self.curr_ypr, self.curr_xyz
         )
-
-class Model:
-
-    def __init__(self, cameras):
-        self.cameras = cameras
         
-    
-def create_cameras():
-    colors = ['black', 'magenta']
-    frust = [[0, 0], [0, 0]]
-    angs = [
-        [math.radians(45), math.radians(45)],
-        [math.radians(45), math.radians(45)]
-    ]
-    return [
-        Camera(frust_range, angs, color)
-        for frust_range, angs, color in zip(frust, angs, colors)
-    ]
-    
-
-if '__main__' == __name__:
-    for c in create_cameras():
-        print(str(c))
     

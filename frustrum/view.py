@@ -18,6 +18,7 @@ class View(object):
         self.ax = plt.subplot(self.gs[0], projection='3d')
         self.ax_min, self.ax_max = 100, 100
         self.resetAxes()
+        plt.show()
 
     def resetAxes(self):
         self.ax.clear()
@@ -27,7 +28,6 @@ class View(object):
         self.ax.plot([self.ax_min, self.ax_max], [0, 0], [0, 0], color='red')
         self.ax.plot([0, 0], [self.ax_min, self.ax_max], [0, 0], color='green')
         self.ax.plot([0, 0], [0, 0], [self.ax_min, self.ax_max], color='blue')
-
 
     def _plotVecs(self, vecs, origin, color):
         for i, v in enumerate(vecs):                
@@ -46,14 +46,32 @@ class View(object):
             )
         
     def plot(self):
-        plt.show()
-        while True:
-            model = self.msg_q.get()
-            for camera in model.cameras:
-                plot_vecs(camera.curr_min_frust, camera.curr_origin, camera.color)
-                plot_vecs(camera.curr_max_frust, camera.curr_origin, camera.color)
+            print('[ok][got model ..][cameras=%s]' % model.cameras)
             
+'''            
+            for camera in model.cameras:
+                self._plotVecs(camera.curr_min_frust, camera.curr_origin, camera.color)
+                self._plotVecs(camera.curr_max_frust, camera.curr_origin, camera.color)
+'''
 
+class Controller:
+
+    def __init__(self, q, model):
+        self.q = q
+        self.model = model
+
+    def run(self):
+        print('start')
+        import time
+        c = self.model.cameras[0]
+        for i in range(0, 50, 10):
+            c.frust_range = [20, 40]            
+            c.pose(c.curr_ypr, [i, c.curr_xyz[1], c.curr_xyz[2]])
+            q.put(model, True)
+            print('[ok][sent model ..]')
+            time.sleep(3)                    
+    
+                
 if '__main__' == __name__:
 
     from model import create_cameras
@@ -62,12 +80,10 @@ if '__main__' == __name__:
     model = Model(cameras)
     q = queue.Queue()
     view = View(q)
-    t = threading.Thread(target=view.plot)
-    t.start()
+    cont = Controller(q, model)
 
-    for i in range(10):
-        q.put(model)
-        time.sleep(2)
-        
+    t = threading.Thread(target=cont.run)
+    t.start()
+    view.plot()
     q.join()
   
