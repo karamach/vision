@@ -1,6 +1,8 @@
 import numpy as np
 import math
 from functools import reduce
+from sympy.geometry import Line3D, Plane
+from sympy import Point3D, intersection
 
 class Geometry(object):
 
@@ -101,9 +103,74 @@ class Geometry(object):
             [pl2[0], pl2[1], pl2[2]]
         ])
         rank =  np.linalg.matrix_rank(mat)                          
-        print('rank=%s' % rank)
         return rank == 1
-                        
+
+    @staticmethod
+    def angle_between_lines(l1, l2):
+        d1 = np.array([l1[1][0]-l1[0][0], l1[1][1]-l1[0][1], l1[1][2]-l1[0][2]])
+        d2 = np.array([l2[1][0]-l2[0][0], l2[1][1]-l2[0][1], l2[1][2]-l2[0][2]])
+        angle = np.arccos(np.dot(d1, d2)/(np.linalg.norm(d1)*np.linalg.norm(d2)))
+        return angle
+
+    def are_lines_parallel(l1, l2):
+        angle = round(Geometry.angle_between_lines(l1, l2), 2)
+        return angle == 0 or angle == 3.14
+   
+
+    @staticmethod
+    def lines_intersection(lines1, lines2):
+
+        def line_intersection(l1, l2):
+            l1 = Line3D(Point3D(l1[0][0], l1[0][1], l1[0][2]), Point3D(l1[1][0], l1[1][1], l1[1][2]))
+            l2 = Line3D(Point3D(l2[0][0], l2[0][1], l2[0][2]), Point3D(l2[1][0], l2[1][1], l2[1][2]))
+            inters = intersection(l1, l2)
+            print(inters)
+            return inters        
+        
+        def line_intersection1(l1, l2):
+            # Finds the intersection of 2 lines l1, l2 represented as numpy arrays of 2 points on the line
+            # (x-x0)/xn = (y-y0)/yn = (z-z0)/zn
+            # use the den that is not equal in two lines and find value of variable using that. then find other
+            # variables
+            l1, l2 = np.array(l1), np.array(l2)
+            res = [0 for i in range(3)]
+        
+            d1 = np.array([l1[1][0]-l1[0][0], l1[1][1]-l1[0][1], l1[1][2]-l1[0][2]])
+            d2 = np.array([l2[1][0]-l2[0][0], l2[1][1]-l2[0][1], l2[1][2]-l2[0][2]])
+
+            def is_valid_idx(d1, d2, idx):
+                return d1[idx] != d2[idx] and d1[idx] != 0 and d2[idx] != 0
+
+            valid_idx = [i for i in range(3) if is_valid_idx(d1, d2, i)]
+            print(valid_idx)
+            print(d1, d2)
+            if len(valid_idx) == 0:
+                return None
+            
+            idx = valid_idx[0]
+            res[idx] = (l1[0][idx]*d2[idx] - l2[0][idx]*d1[idx])/(d2[idx]-d1[idx])
+            print('res[idx=', res[idx])
+            remaining_idx = set([0, 1, 2]) - set([idx])            
+            for i in remaining_idx:
+                res[i] = l1[0][i] + (d1[i] * (res[idx]-l1[0][idx])/d1[idx])  # x0 + xn*(z-z0)/zn
+            print(l1)
+            print(l2)
+            print(res)
+            print('---')
+            return np.array(res)
+
+        line_pairs = [[l1, l2] for l2 in lines2 for l1 in lines1]
+        line_pairs = [line_pair for line_pair in line_pairs if not Geometry.are_lines_parallel(line_pair[0], line_pair[1])]
+        intersections = [line_intersection(line_pair[0], line_pair[1]) for line_pair in line_pairs]
+        intersections = [inters for inters in intersections if inters is not None]
+        return intersections
+
+    @staticmethod
+    def rect_line_intersection(r, l):
+        r_tmp = np.append(r, [r[0]], axis=0)
+        r_lines = [[r_tmp[i], r_tmp[i+1]] for i in range(len(r_tmp)-1)]
+        return Geometry.lines_intersection(r_lines, [l])
+                                 
     @staticmethod
     def are_frustrums_equal(f1, f2):
         return sum([np.array_equal(p1, p2) for p1, p2 in zip(f1, f2)]) == 8
@@ -115,32 +182,18 @@ class Geometry(object):
         if Geometry.are_frustrums_equal(f1, f2):
             print('[ok][frustrum equals ..][val=true]')
             return f1
-        else:
-            print('[ok][frustrum equals ..][val=false]')
 
+        print('[ok][frustrum equals ..][val=false]')
         f1_planes = Geometry.get_frustrum_plane_points(f1)
         f2_planes = Geometry.get_frustrum_plane_points(f2)
-        intersect_points = []
-        for i, f1_pl in enumerate(f1_planes):
-            for j, f2_pl in enumerate(f2_planes):
-                print('[----------------\nplanes .. %s %s\n%s\n%s]' % (i, j, f1_pl, f2_pl))
-                f1_npl = Geometry.get_plane(f1_pl)
-                f2_npl = Geometry.get_plane(f2_pl)
-                is_parallel = Geometry.are_planes_parallel(f1_npl, f2_npl)
-                print('is_parallel=%s' % is_parallel)
-                if not is_parallel:
-                    (p1, p2) = Geometry.plane_intersect(f1_npl, f2_npl) 
-                    print('intersection_points=%s %s' % (p1, p2))                   
-                    valid_intersection = [
-                        1 if (Geometry.check_point_in_rect(p1, pl) and Geometry.check_point_in_rect(p2, pl)) else 0
-                        for pl in [f1_pl, f2_pl]
-                    ]
-                    if sum(valid_intersection) == 2:
-                        intersect_points.append(p1)
-                        intersect_points.append(p2)
-                    print('valid_intersection=%s' % (len(intersect_points) > 0))                   
-                    
-        return intersect_points    
+        plane_pairs = [[f1_pl, f2_pl] for f2_pl in f2_planes for f1_pl in f1_planes]
+        plane_pairs_n = [[Geometry.get_plane(pl) for pl in plane_pair] for plane_pair in plane_pairs] # normalize
+        valid_plane_idx = [ifx for idx, plane_pair in enumerate(plane_pairs_n) if not Geometry.are_planes_parallel(plane_pair[0], plane_pair[1])]
+        plane_pairs_n = [plane_pairs_n[i] for i in valid_plane_idx]
+        plane_pairs = [plane_pairs[i] for i in valid_plane_idx]
+        plane_inters_lines = [Geometry.plane_intersect(plane_pair[0], plane_pair[1]) for plane_pair in plane_pairs_n]
+        plane_insters_points = [Geometry.rect_line_intersection(plane_pairs[i][0], plane_inters_lines[i])]
+        return plane_inters_points    
 
 def test_plane_intersect():
     points1 = np.array([
@@ -159,8 +212,6 @@ def test_plane_intersect():
     pl2 = Geometry.get_plane(points2)
     intersection = Geometry.plane_intersect(pl1, pl2)
     print(intersection)
-
-    
 
 def test_get_plane():
     points = np.array([
@@ -181,6 +232,65 @@ def test_point_in_rect():
     point = np.array([-1, -1, -1])
     print(Geometry.check_point_in_rect(point, rect))
 
+def test_line_intersect():
+    l1 = np.array([
+        [0, 0, 0],
+        [5, 5, 5]
+    ])
+    l2 = np.array([
+        [0, 5, 0],
+        [5, 0, 5]
+    ])
+    p_intersect = Geometry.lines_intersection(l1, l2)
+    print(p_intersect)
+
+def test_rectangle_intersect():
+    r1 = np.array([[5, 5, 5], [0, 0, 5], [0, 0, 0], [5, 5, 0]])
+    r2 = np.array([[0, 5, 5], [5, 0, 5], [5, 0, 0], [0, 5, 0]])
+    r1_pl = Geometry.get_plane(r1)
+    r2_pl = Geometry.get_plane(r2)    
+    is_parallel = Geometry.are_planes_parallel(r1_pl, r2_pl)
+    if is_parallel:
+        print('is_parallel=%s' % is_parallel)
+        return
+    
+        (p1, p2) = Geometry.plane_intersect(r1_pl, r2_pl)
+        print('p1, p2 = %s %s' %(p1, p2))
+        r1_tmp = np.append(r1, [r1[0]], axis=0)
+        lines = [[r1_tmp[i], r1_tmp[i+1]] for i in range(len(r1_tmp)-1)]
+        print('lines1=%s'% lines)
+        inter1 = Geometry.lines_intersection(lines, [[p1, p2]])
+        r2_tmp = np.append(r2, [r2[0]], axis=0)
+        lines = [[r2_tmp[i], r2_tmp[i+1]] for i in range(len(r2_tmp)-1)]
+        print('lines2=%s'% lines)
+        inter2 = Geometry.lines_intersection(lines, [[p1, p2]])
+        print(inter1, inter2)
+        
+def test_lines_parallel():
+    l1 = np.array([
+        [0, 0, 0],
+        [5, 5, 5]
+    ])
+    l2 = np.array([
+        [0, 5, 0],
+        [5, 0, 5]
+    ])
+
+    angle = Geometry.angle_between_lines(l1, l2)
+    print(math.degrees(angle))
+
+def test_rect_line_intesect():
+    r1 = np.array([[5, 5, 5], [0, 0, 5], [0, 0, 0], [5, 5, 0]])
+    l1 = np.array([[2.5, 2.5, 0], [5, 5, 5]])
+    intersections = Geometry.rect_line_intersection(r1, l1)
+    print('inters')
+    for inters in intersections:
+        print(inters)
+    
 if '__main__' == __name__:
-    test_plane_intersect()
+    #test_plane_intersect()    
     #test_point_in_rect()
+    #test_line_intersect()
+    #test_rectangle_intersect()
+    #test_lines_parallel()
+    test_rect_line_intesect()
