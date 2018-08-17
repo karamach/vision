@@ -45,11 +45,19 @@ class IntersControl:
         self.cameras = cameras
         self.inters = inters
         self.callback = callback
+        self.do_inters = False
     
     def update(self, val):
+        self.do_inters = not self.do_inters
+        if not self.do_inters:
+            self.inters.points = []
+            self.callback()
+            return
+            
         c1_f = self.cameras[0].curr_min_frust + self.cameras[0].curr_max_frust
         c2_f = self.cameras[1].curr_min_frust + self.cameras[1].curr_max_frust
-        self.inters.points, self.inters.radius, self.inters.origin = Geometry.frustrum_intersect(c1_f, c2_f)
+        #self.inters.points, self.inters.radius, self.inters.origin = Geometry.frustrum_intersect(c1_f, c2_f)
+        self.inters.points, _, _ = Geometry.frustrum_intersect(c1_f, c2_f)
         if self.inters.points:
             print('[ok][found intersections ..]')
         else:

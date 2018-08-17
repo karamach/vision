@@ -87,11 +87,16 @@ def plot_frustrum(cameras, inters):
     def plot_intersection():
         points, radius, origin = inters.points, inters.radius, inters.origin     
         if len(points) > 0:
+            points = [list(point) for point in points]
+            print('[ok][intersection points ..][points=%s]' % points)
             ix, iy, iz = [p[0] for p in points],  [p[1] for p in points],  [p[2] for p in points]
-            print(radius, origin)
-            x, y, z = get_sphere_points(radius, origin)
-            ax.plot_wireframe(x, y, z, color='red')
+            print('[ok][enclosing hull ..][radius=%s][origin=%s]' % (radius, origin))
+            #x, y, z = get_sphere_points(radius, origin)
+            #ax.plot_wireframe(x, y, z, color='red')
             ax.scatter(ix, iy, iz, color='black', marker='o')
+            #hull = ConvexHull(np.array(points))
+            #ax.plot(points[hull.vertices,0], points[hull.vertices,1], 'r--', lw=2)
+            #ax.plot(points[hull.vertices[0],0], points[hull.vertices[0],1], 'ro')            
             
     def plot_cameras():
         for camera in cameras:
