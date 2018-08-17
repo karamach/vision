@@ -40,7 +40,7 @@ class Geometry(object):
         return [point + np.array([x, y, z]) for point in points]
 
     @staticmethod
-    def plane_intersect(a, b):
+    def plane_intersect1(a, b):
         """
         a, b   4-tuples/lists
                Ax + By +Cz + D = 0
@@ -57,6 +57,12 @@ class Geometry(object):
         p_inter = np.linalg.solve(A, d).T
         print(p_inter)
         return p_inter[0], (p_inter + aXb_vec)[0]
+
+    @staticmethod
+    def plane_intersect(points1, points2):
+        pl1 = Plane(*points1)
+        pl2 = Plane(*points2)
+        return intersection(pl1, pl2)
 
     @staticmethod
     def get_plane(points):
@@ -208,9 +214,10 @@ def test_plane_intersect():
         [4, 0, 0],
         [0, 4, 0]
     ])
-    pl1 = Geometry.get_plane(points1)
-    pl2 = Geometry.get_plane(points2)
-    intersection = Geometry.plane_intersect(pl1, pl2)
+    #pl1 = Geometry.get_plane(points1)
+    #pl2 = Geometry.get_plane(points2)
+    #intersection = Geometry.plane_intersect(pl1, pl2)
+    intersection = Geometry.plane_intersect(points1[:3], points2[:3])
     print(intersection)
 
 def test_get_plane():
@@ -288,9 +295,9 @@ def test_rect_line_intesect():
         print(inters)
     
 if '__main__' == __name__:
-    #test_plane_intersect()    
+    test_plane_intersect()    
     #test_point_in_rect()
     #test_line_intersect()
     #test_rectangle_intersect()
     #test_lines_parallel()
-    test_rect_line_intesect()
+    #test_rect_line_intesect()

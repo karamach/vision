@@ -54,4 +54,9 @@ class Camera(object):
             self.curr_max_frust, self.curr_ypr, self.curr_xyz
         )
         
-    
+class Inters:
+
+    def __init__(self):
+        self.points = []
+        self.radius = 0
+        self.origin = [0, 0, 0]

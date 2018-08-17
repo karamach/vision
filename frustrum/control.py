@@ -1,4 +1,5 @@
 import math
+from geometry import Geometry
 
 class CameraTransControl(object):
 
@@ -37,5 +38,20 @@ class CameraFrustControl(object):
         self.camera.frust_range[self.frust_idx] = val
         self.camera.pose( self.camera.curr_ypr,  self.camera.curr_xyz)
         self.callback()
-
                 
+class IntersControl:
+
+    def __init__(self, cameras, inters, callback):
+        self.cameras = cameras
+        self.inters = inters
+        self.callback = callback
+    
+    def update(self, val):
+        c1_f = self.cameras[0].curr_min_frust + self.cameras[0].curr_max_frust
+        c2_f = self.cameras[1].curr_min_frust + self.cameras[1].curr_max_frust
+        self.inters.points, self.inters.radius, self.inters.origin = Geometry.frustrum_intersect(c1_f, c2_f)
+        if self.inters.points:
+            print('[ok][found intersections ..]')
+        else:
+            print('[ok][no intersections ..]')            
+        self.callback()

@@ -1,12 +1,15 @@
 import matplotlib.pyplot as plt
+import matplotlib
 from mpl_toolkits.mplot3d import Axes3D
 import numpy as np
 import math
-from matplotlib.widgets import Slider
+from matplotlib.widgets import Slider, Button
 import matplotlib.gridspec as gridspec
-from utils import Geometry
-from model import Camera
-from control import CameraTransControl, CameraRotControl, CameraFrustControl
+from geometry import Geometry
+from model import Camera, Inters
+from control import CameraTransControl, CameraRotControl, CameraFrustControl, IntersControl
+from scipy.spatial import ConvexHull
+
 
 def create_sliders(fig, ax_min, ax_max):
     names = [
@@ -34,7 +37,7 @@ def create_sliders(fig, ax_min, ax_max):
     ]
     return sliders
 
-def create_camera_controls(cameras, fig, callback):
+def create_camera_controls(cameras, callback):
     cameraControls = [
         CameraTransControl(cameras[int(i/3)], i%3, callback) for i in range(6)
     ]
@@ -46,7 +49,7 @@ def create_camera_controls(cameras, fig, callback):
     ]
     return cameraControls
 
-def plot_frustrum(cameras):
+def plot_frustrum(cameras, inters):
 
     fig = plt.figure(figsize=(8,8))
     gs = gridspec.GridSpec(1, 2, width_ratios=[2, 1])
@@ -73,16 +76,22 @@ def plot_frustrum(cameras):
                 color=color
             )        
 
+    def get_sphere_points(r, c):
+        # draw sphere
+        u, v = np.mgrid[0:2*np.pi:20j, 0:np.pi:10j]
+        x = r*np.cos(u)*np.sin(v) + c[0]
+        y = r*np.sin(u)*np.sin(v) + c[1]
+        z = r*np.cos(v) + c[2]
+        return x, y, z
+            
     def plot_intersection():
-        c1_f = cameras[0].curr_min_frust + cameras[0].curr_max_frust
-        c2_f = cameras[1].curr_min_frust + cameras[1].curr_max_frust
-        intersect_points = Geometry.frustrum_intersect(c1_f, c2_f)
-        if intersect_points:
-            print('[ok][found intersections ..]')
-            ix, iy, iz = [p[0] for p in intersect_points],  [p[1] for p in intersect_points],  [p[2] for p in intersect_points]
+        points, radius, origin = inters.points, inters.radius, inters.origin     
+        if len(points) > 0:
+            ix, iy, iz = [p[0] for p in points],  [p[1] for p in points],  [p[2] for p in points]
+            print(radius, origin)
+            x, y, z = get_sphere_points(radius, origin)
+            ax.plot_wireframe(x, y, z, color='red')
             ax.scatter(ix, iy, iz, color='black', marker='o')
-        else:
-            print('[ok][no intersections ..]')            
             
     def plot_cameras():
         for camera in cameras:
@@ -96,11 +105,16 @@ def plot_frustrum(cameras):
         fig.canvas.draw_idle()
 
 
-    cameraControls = create_camera_controls(cameras, fig, plot)   
+    cameraControls = create_camera_controls(cameras, plot)   
     sliders = create_sliders(fig, ax_min, ax_max)
     for s, c in zip(sliders, cameraControls):
-        s.on_changed(c.update)            
+        s.on_changed(c.update)
+    intersControl = IntersControl(cameras, inters, plot)
 
+    s_axes = [.1, .9, .15, .05]            
+    b_inters = Button(fig.add_axes(s_axes), 'show_inters')
+    b_inters.on_clicked(intersControl.update)
+    
     plot()
     plt.show()    
     
@@ -110,7 +124,7 @@ if '__main__' == __name__:
         return [math.radians(a) for a in angles]
     
     colors = ['magenta', 'cyan']
-    frust = [[20, 40], [20, 40]]
+    frust = [[0, 0], [0, 0]]
     angs = [
         [math.radians(45), math.radians(45)],
         [math.radians(45), math.radians(45)]
@@ -119,6 +133,7 @@ if '__main__' == __name__:
         Camera(frust_range, angs, color)
         for frust_range, angs, color in zip(frust, angs, colors)
     ]
+    inters = Inters()
     
-    plot_frustrum(cameras)
+    plot_frustrum(cameras, inters)
     
