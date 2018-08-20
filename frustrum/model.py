@@ -58,5 +58,5 @@ class Inters:
 
     def __init__(self):
         self.points = []
-        self.radius = 0
-        self.origin = [0, 0, 0]
+        self.hull = None
+        self.score = 0

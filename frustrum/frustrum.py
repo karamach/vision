@@ -21,7 +21,7 @@ def create_sliders(fig, ax_min, ax_max):
     s_axes = [[.7, .85, .15, .01]]    
     for i in range(15):
         prev = s_axes[-1]
-        s_axes.append([prev[0], prev[1]-.05, prev[2], prev[3]])
+        s_axes.append([prev[0], prev[1]-.02, prev[2], prev[3]])
 
     sliders = [
         Slider(fig.add_axes(a, facecolor='lightgoldenrodyellow'), names[i], ax_min, ax_max, valinit=0, valstep=1)
@@ -51,7 +51,7 @@ def create_camera_controls(cameras, callback):
 
 def plot_frustrum(cameras, inters):
 
-    fig = plt.figure(figsize=(8,8))
+    fig = plt.figure(figsize=(10,6))
     gs = gridspec.GridSpec(1, 2, width_ratios=[2, 1])
     ax = plt.subplot(gs[0], projection='3d')
     ax_min, ax_max = 0, 200
@@ -85,18 +85,13 @@ def plot_frustrum(cameras, inters):
         return x, y, z
             
     def plot_intersection():
-        points, radius, origin = inters.points, inters.radius, inters.origin     
+        points, hull, score = inters.points, inters.hull, inters.score
         if len(points) > 0:
-            points = [list(point) for point in points]
-            print('[ok][intersection points ..][points=%s]' % points)
-            ix, iy, iz = [p[0] for p in points],  [p[1] for p in points],  [p[2] for p in points]
-            print('[ok][enclosing hull ..][radius=%s][origin=%s]' % (radius, origin))
-            #x, y, z = get_sphere_points(radius, origin)
-            #ax.plot_wireframe(x, y, z, color='red')
-            ax.scatter(ix, iy, iz, color='black', marker='o')
-            #hull = ConvexHull(np.array(points))
-            #ax.plot(points[hull.vertices,0], points[hull.vertices,1], 'r--', lw=2)
-            #ax.plot(points[hull.vertices[0],0], points[hull.vertices[0],1], 'ro')            
+            points = np.array([list(point) for point in points])
+            print('Score=%s, Volume=%s', (score, hull.volume))
+            for s in hull.simplices:
+                s = np.append(s, s[0])  # Here we cycle back to the first coordinate
+                ax.plot(points[s, 0], points[s, 1], points[s, 2], "k--")            
             
     def plot_cameras():
         for camera in cameras:
@@ -116,7 +111,7 @@ def plot_frustrum(cameras, inters):
         s.on_changed(c.update)
     intersControl = IntersControl(cameras, inters, plot)
 
-    s_axes = [.1, .9, .15, .05]            
+    s_axes = [.7, .9, .15, .05]            
     b_inters = Button(fig.add_axes(s_axes), 'show_inters')
     b_inters.on_clicked(intersControl.update)
     

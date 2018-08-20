@@ -1,5 +1,6 @@
 import math
 from geometry import Geometry
+from scipy.spatial import ConvexHull
 
 class CameraTransControl(object):
 
@@ -45,21 +46,17 @@ class IntersControl:
         self.cameras = cameras
         self.inters = inters
         self.callback = callback
-        self.do_inters = False
+        self.score = 0
     
     def update(self, val):
-        self.do_inters = not self.do_inters
-        if not self.do_inters:
-            self.inters.points = []
-            self.callback()
-            return
-            
         c1_f = self.cameras[0].curr_min_frust + self.cameras[0].curr_max_frust
-        c2_f = self.cameras[1].curr_min_frust + self.cameras[1].curr_max_frust
-        #self.inters.points, self.inters.radius, self.inters.origin = Geometry.frustrum_intersect(c1_f, c2_f)
-        self.inters.points, _, _ = Geometry.frustrum_intersect(c1_f, c2_f)
-        if self.inters.points:
+        c2_f = self.cameras[1].curr_min_frust + self.cameras[1].curr_max_frust        
+        points = Geometry.frustrum_intersect(c1_f, c2_f)
+        if points:
             print('[ok][found intersections ..]')
+            self.inters.points = points
+            self.inters.hull = ConvexHull(np.array(self.inters.points))
+            self.inters.score = self.inters.hull.volume / (Geometry.get_frustrum_volume(c1_f) + Geometry.get_frustrum_volume(c2_f))
         else:
             print('[ok][no intersections ..]')            
         self.callback()
