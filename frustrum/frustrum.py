@@ -7,7 +7,7 @@ from matplotlib.widgets import Slider, Button
 import matplotlib.gridspec as gridspec
 from geometry import Geometry
 from model import Camera, Inters
-from control import CameraTransControl, CameraRotControl, CameraFrustControl, IntersControl
+from control import CameraTransControl, CameraRotControl, CameraFrustControl, IntersControl, CameraAngleControl
 from scipy.spatial import ConvexHull
 
 
@@ -15,11 +15,11 @@ def create_sliders(fig, ax_min, ax_max):
     names = [
         'c1_x', 'c1_y', 'c1_z', 'c2_x', 'c2_y', 'c2_z',   
         'c1_yaw', 'c1_pitch', 'c1_roll', 'c2_yaw', 'c2_pitch', 'c2_roll',
-        'c1_minf', 'c1_maxf', 'c2_minf', 'c2_maxf'
+        'c1_minf', 'c1_maxf', 'c2_minf', 'c2_maxf', 'c1_ha', 'c1_va', 'c2_ha', 'c2_va'
     ]
     
     s_axes = [[.7, .85, .15, .01]]    
-    for i in range(15):
+    for i in range(19):
         prev = s_axes[-1]
         s_axes.append([prev[0], prev[1]-.02, prev[2], prev[3]])
 
@@ -33,7 +33,11 @@ def create_sliders(fig, ax_min, ax_max):
     ]
     sliders += [
         Slider(fig.add_axes(a, facecolor='lightgoldenrodyellow'), names[i+12], ax_min, ax_max, valinit=0, valstep=1)
-        for i, a in enumerate(s_axes[12:])
+        for i, a in enumerate(s_axes[12:16])
+    ]
+    sliders += [
+        Slider(fig.add_axes(a, facecolor='lightgoldenrodyellow'), names[i+16], 0, 180 , valinit=0, valstep=1)
+        for i, a in enumerate(s_axes[16:])
     ]
     return sliders
 
@@ -46,6 +50,9 @@ def create_camera_controls(cameras, callback):
     ]
     cameraControls += [
         CameraFrustControl(cameras[int((i-12)/2)], i%2, callback) for i in range(12, 16)
+    ]
+    cameraControls += [
+        CameraAngleControl(cameras[int((i-16)/2)], i%2, callback) for i in range(16, 20)
     ]
     return cameraControls
 
@@ -126,8 +133,8 @@ if '__main__' == __name__:
     colors = ['magenta', 'cyan']
     frust = [[0, 0], [0, 0]]
     angs = [
-        [math.radians(45), math.radians(45)],
-        [math.radians(45), math.radians(45)]
+        [math.radians(0), math.radians(0)],
+        [math.radians(0), math.radians(0)]
     ]
     cameras = [
         Camera(frust_range, angs, color)

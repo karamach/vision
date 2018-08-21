@@ -10,12 +10,7 @@ class Camera(object):
         self.h_ang = angs[0]
         self.v_ang = angs[1]
         self.color = color
-        self.unit_frust = np.array([
-            [1, math.tan(self.h_ang/2), math.tan(self.v_ang/2)],
-            [1, -math.tan(self.h_ang/2), math.tan(self.v_ang/2)],
-            [1, -math.tan(self.h_ang/2), -math.tan(self.v_ang/2)],
-            [1, math.tan(self.h_ang/2), -math.tan(self.v_ang/2)],
-        ])
+        self.unit_frust = Camera._update_unitfrust(self.h_ang, self.v_ang)
         self.frust_range = frust_range
         self.min_frust, self.max_frust = Camera._update_frust(self.frust_range, self.unit_frust)
 
@@ -27,12 +22,23 @@ class Camera(object):
         self.curr_xyz = [0, 0, 0]
 
     @staticmethod
+    def _update_unitfrust(h_ang, v_ang):
+        h_ang, v_ang = math.radians(h_ang), math.radians(v_ang)
+        return np.array([
+            [1, math.tan(h_ang/2), math.tan(v_ang/2)],
+            [1, -math.tan(h_ang/2), math.tan(v_ang/2)],
+            [1, -math.tan(h_ang/2), -math.tan(v_ang/2)],
+            [1, math.tan(h_ang/2), -math.tan(v_ang/2)],
+        ])
+        
+    @staticmethod
     def _update_frust(frust_range, unit_frust):
         min_frust = [frust_range[0]*p for p in unit_frust]
         max_frust = [frust_range[1]*p for p in unit_frust]
         return min_frust, max_frust
                 
     def pose(self, ypr, xyz):
+        self.unit_frust = Camera._update_unitfrust(self.h_ang, self.v_ang)
         self.min_frust, self.max_frust = Camera._update_frust(self.frust_range, self.unit_frust) 
         [o, min_f, max_f] = [self.origin, self.min_frust, self.max_frust]
         [o], min_f, max_f = G.rot([o], ypr), G.rot(min_f, ypr), G.rot(max_f, ypr)
