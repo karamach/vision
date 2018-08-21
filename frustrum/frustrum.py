@@ -1,15 +1,16 @@
 import matplotlib.pyplot as plt
 import matplotlib
 from mpl_toolkits.mplot3d import Axes3D
+import mpl_toolkits.mplot3d as a3
 import numpy as np
 import math
 from matplotlib.widgets import Slider, Button
 import matplotlib.gridspec as gridspec
 from geometry import Geometry
-from model import Camera, Inters
+from model import Camera, Inters, create_model
 from control import CameraTransControl, CameraRotControl, CameraFrustControl, IntersControl, CameraAngleControl
 from scipy.spatial import ConvexHull
-
+from matplotlib.patches import Polygon
 
 def create_sliders(fig, ax_min, ax_max):
     names = [
@@ -32,7 +33,7 @@ def create_sliders(fig, ax_min, ax_max):
         for i, a in enumerate(s_axes[6:12])
     ]
     sliders += [
-        Slider(fig.add_axes(a, facecolor='lightgoldenrodyellow'), names[i+12], ax_min, ax_max, valinit=0, valstep=1)
+        Slider(fig.add_axes(a, facecolor='lightgoldenrodyellow'), names[i+12], 0, 2*ax_max, valinit=0, valstep=1)
         for i, a in enumerate(s_axes[12:16])
     ]
     sliders += [
@@ -56,12 +57,15 @@ def create_camera_controls(cameras, callback):
     ]
     return cameraControls
 
-def plot_frustrum(cameras, inters):
+
+def plot_frustrum():
+
+    cameras, inters = create_model()
 
     fig = plt.figure(figsize=(10,6))
     gs = gridspec.GridSpec(1, 2, width_ratios=[2, 1])
     ax = plt.subplot(gs[0], projection='3d')
-    ax_min, ax_max = 0, 200
+    ax_min, ax_max = -200, 200
 
     # intersection button
     s_axes = [.7, .9, .15, .05]            
@@ -100,9 +104,7 @@ def plot_frustrum(cameras, inters):
             ax.scatter(ix, iy, iz, color='red', marker='o')
             points = np.array([list(point) for point in points])
             plt.figtext(.7, .25, 'score=%.2f\nhull volume=%.2f\nfrust union volume=%.2f' % (score, hull.volume, inters.frust_union_volume))
-            for s in hull.simplices:
-                s = np.append(s, s[0])  # Here we cycle back to the first coordinate
-                ax.plot(points[s, 0], points[s, 1], points[s, 2], "k--")
+            ax.plot_trisurf(points[:,0], points[:,1], points[:,2], triangles=hull.simplices, edgecolor='Gray')                
             
     def plot_cameras():
         for camera in cameras:
@@ -127,20 +129,5 @@ def plot_frustrum(cameras, inters):
     
 if '__main__' == __name__:
 
-    def rads(angles):
-        return [math.radians(a) for a in angles]
-    
-    colors = ['magenta', 'cyan']
-    frust = [[0, 0], [0, 0]]
-    angs = [
-        [math.radians(0), math.radians(0)],
-        [math.radians(0), math.radians(0)]
-    ]
-    cameras = [
-        Camera(frust_range, angs, color)
-        for frust_range, angs, color in zip(frust, angs, colors)
-    ]
-    inters = Inters()
-    
-    plot_frustrum(cameras, inters)
+    plot_frustrum()
     

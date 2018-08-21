@@ -55,8 +55,7 @@ class CameraAngleControl(object):
         else: self.camera.v_ang = val
         self.camera.pose(self.camera.curr_ypr,  self.camera.curr_xyz)
         self.callback()
-        
-                
+                        
 class IntersControl:
 
     def __init__(self, cameras, inters, callback):
@@ -89,6 +88,15 @@ class IntersControl:
         self.inters.hull = ConvexHull(np.array(self.inters.points))
         l1 = abs(self.cameras[0].frust_range[1] - self.cameras[0].frust_range[0])
         l2 = abs(self.cameras[1].frust_range[1] - self.cameras[0].frust_range[0])
-        self.inters.frust_union_volume =  float(Geometry.get_frustrum_volume(c1_f, l1)) + float(Geometry.get_frustrum_volume(c2_f, l2))
+        self.inters.frust_union_volume =  float(Geometry.get_frustrum_volume(c1_f, l1)) + float(Geometry.get_frustrum_volume(c2_f, l2)) - float(self.inters.hull.volume)
         self.inters.score = self.inters.hull.volume / self.inters.frust_union_volume
         self.callback()
+
+class ResetControl:
+
+    def __init__(self, cameras, inters, callback):
+        self.cameras = cameras
+        self.inters = inters
+        self.callback = callback
+        self.score = 0
+        

@@ -1,7 +1,8 @@
 import math
 import numpy as np
 
-from utils import Geometry as G
+from geometry import Geometry as G
+from geometry import Pose as P
 
 class Camera(object):
 
@@ -41,8 +42,8 @@ class Camera(object):
         self.unit_frust = Camera._update_unitfrust(self.h_ang, self.v_ang)
         self.min_frust, self.max_frust = Camera._update_frust(self.frust_range, self.unit_frust) 
         [o, min_f, max_f] = [self.origin, self.min_frust, self.max_frust]
-        [o], min_f, max_f = G.rot([o], ypr), G.rot(min_f, ypr), G.rot(max_f, ypr)
-        [o], min_f, max_f =  G.trans([o], xyz), G.trans(min_f, xyz),  G.trans(max_f, xyz)
+        [o], min_f, max_f = P.rot([o], ypr), P.rot(min_f, ypr), P.rot(max_f, ypr)
+        [o], min_f, max_f =  P.trans([o], xyz), P.trans(min_f, xyz),  P.trans(max_f, xyz)
         self.curr_origin, self.curr_min_frust, self.curr_max_frust = o, min_f, max_f
         self.curr_ypr, self.curr_xyz = ypr, xyz
         return o, min_f, max_f
@@ -71,3 +72,22 @@ class Inters:
         self.score = 0
         self.state = False
         self.frust_union_volume = 0
+
+def create_model():
+    def rads(angles):
+        return [math.radians(a) for a in angles]
+    
+    colors = ['magenta', 'cyan']
+    frust = [[0, 0], [0, 0]]
+    angs = [
+        [math.radians(0), math.radians(0)],
+        [math.radians(0), math.radians(0)]
+    ]
+    cameras = [
+        Camera(frust_range, angs, color)
+        for frust_range, angs, color in zip(frust, angs, colors)
+    ]
+    inters = Inters()
+    return cameras, inters    
+    
+        

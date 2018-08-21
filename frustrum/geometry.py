@@ -37,12 +37,28 @@ class Pose:
                 [0, math.sin(gamma), math.cos(gamma)]
         ])
 
-        R = yaw(y).dot(pitch(p).dot(roll(r)))
+#        R = yaw(y).dot(pitch(p).dot(roll(r)))
+        R = roll(r).dot(pitch(p).dot(yaw(y)))
         return [np.dot(R, point) for point in points]        
         
     def trans(points, xyz):
         [x, y, z] = xyz
         return [point + np.array([x, y, z]) for point in points]
+
+    def simplify(self):
+        for i, tri1 in enumerate(self.tri):
+            for j,tri2 in enumerate(self.tri):
+                if j > i: 
+                    if self.isneighbor(tri1,tri2) and \
+                       self.inv[i]==self.inv[j]:
+                        self.grpinx[j] = self.grpinx[i]
+        groups = []
+        for i in np.unique(self.grpinx):
+            u = self.tri[self.grpinx == i]
+            u = np.concatenate([d for d in u])
+            u = self.order(u)
+            groups.append(u)
+        return groups    
 
 class Geometry:
 
@@ -187,8 +203,7 @@ class Geometry:
         rects = Geometry.get_frustrum_rects(f)
         a_f = float(rects[0][0].distance(rects[0][1]))*float(rects[0][1].distance(rects[0][2]))
         a_b = float(rects[1][0].distance(rects[1][1]))*float(rects[1][1].distance(rects[1][2]))
-        print(a_f, a_b, l)        
-        return a_f*l + (a_b*l-a_f*l)/2
+        return (l/3)*(a_f + a_b + math.sqrt(a_f*a_b))
 
     # convention is clockwise min starting with top left followed by clockwise max 
     @staticmethod
