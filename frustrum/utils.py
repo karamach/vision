@@ -3,6 +3,25 @@ import math
 from functools import reduce
 from sympy.geometry import Line3D, Plane
 from sympy import Point3D, intersection
+from queue import Queue
+import threading
+
+class JobRunner(threading.Thread):
+
+    def __init__(self, i_q, o_q, handler):
+        self.i_q = i_q
+        self.o_q = o_q
+        self.handler = handler
+        threading.Thread.__init__(self)
+        self.setDaemon(True)
+
+    def run(self):
+        while(True):
+            msg = self.i_q.get()
+            ret = self.handler(msg)
+            self.o_q.put(ret)
+            self.i_q.task_done()
+            
 
 class Geometry(object):
 
@@ -301,3 +320,17 @@ if '__main__' == __name__:
     #test_rectangle_intersect()
     #test_lines_parallel()
     #test_rect_line_intesect()
+
+
+'''
+    def get_sphere_points(r, c):
+        # draw sphere
+        u, v = np.mgrid[0:2*np.pi:20j, 0:np.pi:10j]
+        x = r*np.cos(u)*np.sin(v) + c[0]
+        y = r*np.sin(u)*np.sin(v) + c[1]
+        z = r*np.cos(v) + c[2]
+        return x, y, z
+'''            
+    
+
+    

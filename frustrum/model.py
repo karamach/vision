@@ -57,6 +57,11 @@ class Camera(object):
 class Inters:
 
     def __init__(self):
+        self.reset()
+
+    def reset(self):
         self.points = []
         self.hull = None
         self.score = 0
+        self.state = False
+        self.frust_union_volume = 0

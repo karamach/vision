@@ -1,6 +1,9 @@
 import math
 from geometry import Geometry
 from scipy.spatial import ConvexHull
+import numpy as np
+from model import Inters
+import datetime
 
 class CameraTransControl(object):
 
@@ -49,14 +52,29 @@ class IntersControl:
         self.score = 0
     
     def update(self, val):
+        self.inters.state = not self.inters.state
+        if not self.inters.state:
+            self.inters.reset()
+            self.callback()
+            return
+        
         c1_f = self.cameras[0].curr_min_frust + self.cameras[0].curr_max_frust
-        c2_f = self.cameras[1].curr_min_frust + self.cameras[1].curr_max_frust        
+        c2_f = self.cameras[1].curr_min_frust + self.cameras[1].curr_max_frust
+        start = datetime.datetime.now()            
         points = Geometry.frustrum_intersect(c1_f, c2_f)
-        if points:
-            print('[ok][found intersections ..]')
-            self.inters.points = points
-            self.inters.hull = ConvexHull(np.array(self.inters.points))
-            self.inters.score = self.inters.hull.volume / (Geometry.get_frustrum_volume(c1_f) + Geometry.get_frustrum_volume(c2_f))
-        else:
-            print('[ok][no intersections ..]')            
+        end = datetime.datetime.now()
+        print('intersection_compute_time=%s' % (end-start))        
+        if not points:
+            print('[ok][no intersections ..]')
+            self.inters.reset()
+            self.callback()
+            return
+            
+        print('[ok][found intersections ..]')
+        self.inters.points = points
+        self.inters.hull = ConvexHull(np.array(self.inters.points))
+        l1 = abs(self.cameras[0].frust_range[1] - self.cameras[0].frust_range[0])
+        l2 = abs(self.cameras[1].frust_range[1] - self.cameras[0].frust_range[0])
+        self.inters.frust_union_volume =  float(Geometry.get_frustrum_volume(c1_f, l1)) + float(Geometry.get_frustrum_volume(c2_f, l2))
+        self.inters.score = self.inters.hull.volume / self.inters.frust_union_volume
         self.callback()

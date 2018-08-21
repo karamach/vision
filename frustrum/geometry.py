@@ -2,6 +2,10 @@ from sympy.geometry import Line3D, Plane, Segment3D
 from sympy import Point3D, intersection, Polygon
 import numpy as np
 import datetime
+from queue import Queue
+from utils import JobRunner
+
+from multiprocessing import Pool
 
 import math
 
@@ -88,7 +92,6 @@ class Geometry:
 
         return True
 
-
     @staticmethod
     def check_point_in_rect(p, r):
         r = np.array(r + [r[0]])
@@ -108,18 +111,23 @@ class Geometry:
     def segment_rectangle_intersection(s, r):
         s, pl = Segment3D(*s), Plane(*r[:3])
         
-        # if both points in rect, return points
+        # if one of the points in rect, return both points
         [p1, p2] = [Geometry.check_point_in_rect(p, r) for p in s.points]
         if p1 or p2:
             return list(s.points)
 
-        # since neither point is on rectagle, if segment is parallel to plane, it has to be outside
         if pl.is_parallel(s):
-            return []
-                        
-        pois = intersection(pl, s)
-        pois = [p for p in pois if Geometry.check_point_in_rect(p, r)]
-        return pois + list(s.points)
+            if pl.distance(s) != 0: # if plane and seg are parallel with non 0 distance, no intersection
+                return []
+
+            segments = [Segment3D(r[i], r[(i+1)%len(r)]) for i in range(len(r))]
+            pois = [intersection(s, seg) for seg in segments]
+            pois = [p for p in pois if p and Geometry.check_point_in_rect(p, r)]
+            return pois + list(s.points)
+        else:    
+            pois = intersection(pl, s)
+            pois = [p for p in pois if Geometry.check_point_in_rect(p, r)]
+            return pois + list(s.points)
 
     @staticmethod
     def are_parallel_noncoplanar(r1, r2):
@@ -128,17 +136,39 @@ class Geometry:
 
     @staticmethod
     def rectangle_intersections(rects1, rects2):
+        num_rects = len(rects1)*len(rects2)
+        count = [0]
+        
         def get_points(r1, r2):
+            if count[0]%2 == 0:
+                print('%s of %s' % (int(count[0]/2), num_rects))
             segs = [[r1[i], r1[(i+1)%len(r1)]] for i in range(len(r1))]
             inter = [Geometry.segment_rectangle_intersection(s, r2) for s in segs]
             inter = [p for p in inter if p]
             inter = [item for sublist in inter for item in sublist]
+            count[0] += 1
             return inter
                 
-        points = [get_points(r1, r2) + get_points(r2, r1) for r2 in rects2 for r1 in rects1 if not Geometry.are_parallel_noncoplanar(r1, r2)]        
-        return set(sum(points, []))
-                
-        
+        points = [get_points(r1, r2) + get_points(r2, r1) for r2 in rects2 for r1 in rects1 if not Geometry.are_parallel_noncoplanar(r1, r2)]
+        points = [item for sublist in points for item in sublist]
+        return set(points)
+
+    def get_points(rect_pair):
+        (r1, r2) = rect_pair
+        segs = [[r1[i], r1[(i+1)%len(r1)]] for i in range(len(r1))]
+        inter = [Geometry.segment_rectangle_intersection(s, r2) for s in segs]
+        inter = [p for p in inter if p]
+        inter = [item for sublist in inter for item in sublist]
+        return inter
+    
+    @staticmethod
+    def rectangle_intersections_parallel(rects1, rects2):
+        pairs = [(r1, r2) for r2 in rects2 for r1 in rects1 if not Geometry.are_parallel_noncoplanar(r1, r2)]
+        pairs += [(r2, r1) for (r1, r2) in pairs]
+        points = Pool(16).map(Geometry.get_points, pairs)
+        points = [item for sublist in points for item in sublist]
+        return set(points)
+                        
     # convention is clockwise min starting with top left followed by clockwise max 
     @staticmethod
     def get_frustrum_rects(f):
@@ -153,28 +183,22 @@ class Geometry:
         return [[Point3D(x, y, z) for [x, y, z] in points] for points in rect_points]
 
     @staticmethod
-    def get_frustrum_volume(f):
-        points = Geometry.get_frustrum_rects(f)
-        f_pl = Plane(*rects[0][:3])
-        b_pl = Plane(*rects[1][:3])
-        d = f_pl.distance(b_pl)
-        a_f = rects[0][0].distance(rects[0][1])* rects[0][1].distance(rects[0][2])
-        a_b = rects[1][0].distance(rects[1][1])* rects[1][1].distance(rects[1][2])
-        return a_f*d + (a_b*d-a_f*d)/2
+    def get_frustrum_volume(f, l):
+        rects = Geometry.get_frustrum_rects(f)
+        a_f = float(rects[0][0].distance(rects[0][1]))*float(rects[0][1].distance(rects[0][2]))
+        a_b = float(rects[1][0].distance(rects[1][1]))*float(rects[1][1].distance(rects[1][2]))
+        print(a_f, a_b, l)        
+        return a_f*l + (a_b*l-a_f*l)/2
 
     # convention is clockwise min starting with top left followed by clockwise max 
     @staticmethod
     def frustrum_intersect(f1, f2):
         [f1, f2] = [[[int(math.ceil(v)) for v in r] for r in f] for f in [f1, f2]]
         [poly1, poly2] = [Geometry.get_frustrum_rects(f) for f in [f1, f2]]
-        inters = Geometry.rectangle_intersections(poly1, poly2)
+        inters = Geometry.rectangle_intersections_parallel(poly1, poly2)
         inters = [point for point in inters if Geometry.check_point_in_polygon(point, poly1) and Geometry.check_point_in_polygon(point, poly2)]
         inters = [tuple([float(p.x), float(p.y), float(p.z)]) for p in inters]
-        if not inters:
-            return inters, 0, [0, 0, 0]
-        return inters
-                  
-        
+        return inters                          
 
 def test_frustrums_intersection():
     import datetime
@@ -200,7 +224,7 @@ def test_frustrums_intersection():
         [ 40.        ,  16.56854249, -16.56854249]
     ]
 
-    intersections, _, _ = Geometry.frustrum_intersect(f1, f2)
+    intersections = Geometry.frustrum_intersect(f1, f2)
     end = datetime.datetime.now()
     print('time=%s' % (end-start))
     for i in intersections:
@@ -214,11 +238,10 @@ def test_segment_rectangle_intersection():
     s2 = [[0, 0, 20], [20, 20, 20]]    # parallel
     s3 = [[0, 0, 0], [0, 0, 20]]       # intersecting
     s = [[0, 10, 10], [0, -10, 10]]       
-#    assert(2 == Geometry.segment_plane(s1, r))
+    print(Geometry.segment_rectangle_intersection(s1, r))
 #    assert(0 == Geometry.segment_plane(s2, r))
 #    assert(1 == Geometry.segment_plane(s3, r))
 
-    print(Geometry.segment_rectangle_intersection(s, r))
 
 def test_point_in_rectangle():
     r = [[0, 0, 0], [10, 0, 0], [10,10, 0], [0,10,0]]
@@ -253,8 +276,6 @@ def test_check_point_in_frustrum():
     end = datetime.datetime.now()
     print('time=%s' % (end-start))
     
-
-
 if '__main__' == __name__:
     #test_segment_rectangle_intersection()
     #test_point_in_rectangle()

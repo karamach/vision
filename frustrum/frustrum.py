@@ -55,8 +55,15 @@ def plot_frustrum(cameras, inters):
     gs = gridspec.GridSpec(1, 2, width_ratios=[2, 1])
     ax = plt.subplot(gs[0], projection='3d')
     ax_min, ax_max = 0, 200
+
+    # intersection button
+    s_axes = [.7, .9, .15, .05]            
+    b_inters = Button(fig.add_axes(s_axes), 'hide_intersection' if inters.state else 'show_intersection')
+
+    # sliders
+    sliders = create_sliders(fig, ax_min, ax_max)
     
-    def reset_axes(ax):
+    def reset_axes():
         ax.clear()
         ax.set_xlabel('X')
         ax.set_ylabel('Y')
@@ -64,6 +71,9 @@ def plot_frustrum(cameras, inters):
         ax.plot([ax_min, ax_max], [0, 0], [0, 0], color='red')
         ax.plot([0, 0], [ax_min, ax_max], [0, 0], color='green')
         ax.plot([0, 0], [0, 0], [ax_min, ax_max], color='blue')
+        for txt in fig.texts:
+            txt.remove()
+        b_inters.label.set_text( 'hide_intersection' if inters.state else 'show_intersection')            
 
     def plot_vecs(vecs, origin, color):
         for i, v in enumerate(vecs):                
@@ -76,22 +86,16 @@ def plot_frustrum(cameras, inters):
                 color=color
             )        
 
-    def get_sphere_points(r, c):
-        # draw sphere
-        u, v = np.mgrid[0:2*np.pi:20j, 0:np.pi:10j]
-        x = r*np.cos(u)*np.sin(v) + c[0]
-        y = r*np.sin(u)*np.sin(v) + c[1]
-        z = r*np.cos(v) + c[2]
-        return x, y, z
-            
     def plot_intersection():
         points, hull, score = inters.points, inters.hull, inters.score
         if len(points) > 0:
+            ix, iy, iz = [p[0] for p in points],  [p[1] for p in points],  [p[2] for p in points]            
+            ax.scatter(ix, iy, iz, color='red', marker='o')
             points = np.array([list(point) for point in points])
-            print('Score=%s, Volume=%s', (score, hull.volume))
+            plt.figtext(.7, .25, 'score=%.2f\nhull volume=%.2f\nfrust union volume=%.2f' % (score, hull.volume, inters.frust_union_volume))
             for s in hull.simplices:
                 s = np.append(s, s[0])  # Here we cycle back to the first coordinate
-                ax.plot(points[s, 0], points[s, 1], points[s, 2], "k--")            
+                ax.plot(points[s, 0], points[s, 1], points[s, 2], "k--")
             
     def plot_cameras():
         for camera in cameras:
@@ -99,21 +103,17 @@ def plot_frustrum(cameras, inters):
             plot_vecs(camera.curr_max_frust, camera.curr_origin, camera.color)
 
     def plot():
-        reset_axes(ax)
+        reset_axes()
         plot_cameras()
         plot_intersection()
         fig.canvas.draw_idle()
 
+    intersControl = IntersControl(cameras, inters, plot)
+    b_inters.on_clicked(intersControl.update)
 
     cameraControls = create_camera_controls(cameras, plot)   
-    sliders = create_sliders(fig, ax_min, ax_max)
     for s, c in zip(sliders, cameraControls):
         s.on_changed(c.update)
-    intersControl = IntersControl(cameras, inters, plot)
-
-    s_axes = [.7, .9, .15, .05]            
-    b_inters = Button(fig.add_axes(s_axes), 'show_inters')
-    b_inters.on_clicked(intersControl.update)
     
     plot()
     plt.show()    
