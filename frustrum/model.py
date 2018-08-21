@@ -13,8 +13,14 @@ class Camera(object):
         self.color = color
         self.unit_frust = Camera._update_unitfrust(self.h_ang, self.v_ang)
         self.frust_range = frust_range
+        self.axes_points = [
+            [self.frust_range[0], 0, 0],
+            [0, self.frust_range[0], 0],
+            [0, 0, self.frust_range[0]],            
+        ]
         self.min_frust, self.max_frust = Camera._update_frust(self.frust_range, self.unit_frust)
 
+        self.curr_axes_points = self.axes_points
         self.curr_origin = self.origin
         self.curr_min_frust = self.min_frust
         self.curr_max_frust = self.max_frust
@@ -37,13 +43,27 @@ class Camera(object):
         min_frust = [frust_range[0]*p for p in unit_frust]
         max_frust = [frust_range[1]*p for p in unit_frust]
         return min_frust, max_frust
+
+    @staticmethod
+    def _update_axes_points(frust_range):
+        return [
+            [frust_range[0], 0, 0],
+            [0, frust_range[0], 0],
+            [0, 0, frust_range[0]],            
+        ]
                 
     def pose(self, ypr, xyz):
         self.unit_frust = Camera._update_unitfrust(self.h_ang, self.v_ang)
-        self.min_frust, self.max_frust = Camera._update_frust(self.frust_range, self.unit_frust) 
+        self.min_frust, self.max_frust = Camera._update_frust(self.frust_range, self.unit_frust)
         [o, min_f, max_f] = [self.origin, self.min_frust, self.max_frust]
         [o], min_f, max_f = P.rot([o], ypr), P.rot(min_f, ypr), P.rot(max_f, ypr)
         [o], min_f, max_f =  P.trans([o], xyz), P.trans(min_f, xyz),  P.trans(max_f, xyz)
+        
+        self.axes_points = Camera._update_axes_points(self.frust_range)
+        a_points = [P.rot([p], ypr)[0] for p in self.axes_points]
+        a_points = [P.trans([p], xyz)[0] for p in a_points]
+        
+        self.curr_axes_points = a_points
         self.curr_origin, self.curr_min_frust, self.curr_max_frust = o, min_f, max_f
         self.curr_ypr, self.curr_xyz = ypr, xyz
         return o, min_f, max_f

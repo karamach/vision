@@ -95,7 +95,15 @@ def plot_frustrum():
                 [v[1] for v in vecs] + [vecs[0][1]],
                 [v[2] for v in vecs] + [vecs[0][2]],
                 color=color
-            )        
+            )
+
+    def plot_axes_points(c):
+        o = c.curr_origin
+        [x, y, z] = c.curr_axes_points
+        ax.plot([o[0]] + [x[0]], [o[1]] + [x[1]], [o[2]] + [x[2]], color='red', linestyle='-')        
+        ax.plot([o[0]] + [y[0]], [o[1]] + [y[1]], [o[2]] + [y[2]], color='green', linestyle='-')        
+        ax.plot([o[0]] + [z[0]], [o[1]] + [z[1]], [o[2]] + [z[2]], color='blue', linestyle='-')        
+        
 
     def plot_intersection():
         points, hull, score = inters.points, inters.hull, inters.score
@@ -110,6 +118,7 @@ def plot_frustrum():
         for camera in cameras:
             plot_vecs(camera.curr_min_frust, camera.curr_origin, camera.color)
             plot_vecs(camera.curr_max_frust, camera.curr_origin, camera.color)
+            plot_axes_points(camera)
 
     def plot():
         reset_axes()

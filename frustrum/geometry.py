@@ -6,6 +6,7 @@ from queue import Queue
 from utils import JobRunner
 
 from multiprocessing import Pool
+from functools import reduce
 
 import math
 
@@ -37,7 +38,7 @@ class Pose:
                 [0, math.sin(gamma), math.cos(gamma)]
         ])
 
-#        R = yaw(y).dot(pitch(p).dot(roll(r)))
+#       R = yaw(y).dot(pitch(p).dot(roll(r)))
         R = roll(r).dot(pitch(p).dot(yaw(y)))
         return [np.dot(R, point) for point in points]        
         
@@ -63,50 +64,54 @@ class Pose:
 class Geometry:
 
     @staticmethod
-    def check_point_in_polygon(p, rects):
-        f_pl = Plane(*rects[0][:3], eval=False)
-        b_pl = Plane(*rects[1][:3], eval=False)
-        l_pl = Plane(*rects[2][:3], eval=False)
-        r_pl = Plane(*rects[3][:3], eval=False)
-        t_pl = Plane(*rects[4][:3], eval=False)
-        d_pl = Plane(*rects[5][:3], eval=False)        
+    def check_point_in_polygons(point_polys):    
+        def check_point_in_polygon(p, rects):
+            f_pl = Plane(*rects[0][:3], eval=False)
+            b_pl = Plane(*rects[1][:3], eval=False)
+            l_pl = Plane(*rects[2][:3], eval=False)
+            r_pl = Plane(*rects[3][:3], eval=False)
+            t_pl = Plane(*rects[4][:3], eval=False)
+            d_pl = Plane(*rects[5][:3], eval=False)        
 
-        point = p
+            point = p
 
-        proj_f_pl = f_pl.projection(point)        
-        if proj_f_pl == point:
-            return Geometry.check_point_in_rect(p, rects[0])
+            proj_f_pl = f_pl.projection(point)        
+            if proj_f_pl == point:
+                return Geometry.check_point_in_rect(p, rects[0])
 
-        proj_b_pl = b_pl.projection(point)
-        if proj_b_pl == point:
-            return Geometry.check_point_in_rect(p, rects[1])
+            proj_b_pl = b_pl.projection(point)
+            if proj_b_pl == point:
+                return Geometry.check_point_in_rect(p, rects[1])
 
-        if point.distance(proj_f_pl) > proj_f_pl.distance(proj_b_pl) or point.distance(proj_b_pl) > proj_f_pl.distance(proj_b_pl):
-            return False
+            if point.distance(proj_f_pl) > proj_f_pl.distance(proj_b_pl) or point.distance(proj_b_pl) > proj_f_pl.distance(proj_b_pl):
+                return False
 
-        proj_l_pl = l_pl.projection(point)        
-        if proj_l_pl == point:
-            return Geometry.check_point_in_rect(p, rects[2])
+            proj_l_pl = l_pl.projection(point)        
+            if proj_l_pl == point:
+                return Geometry.check_point_in_rect(p, rects[2])
 
-        proj_r_pl = r_pl.projection(point)
-        if proj_r_pl == point:
-            return Geometry.check_point_in_rect(p, rects[3])
+            proj_r_pl = r_pl.projection(point)
+            if proj_r_pl == point:
+                return Geometry.check_point_in_rect(p, rects[3])
 
-        if point.distance(proj_l_pl) > proj_l_pl.distance(proj_r_pl) or point.distance(proj_r_pl) > proj_l_pl.distance(proj_r_pl):
-            return False
+            if point.distance(proj_l_pl) > proj_l_pl.distance(proj_r_pl) or point.distance(proj_r_pl) > proj_l_pl.distance(proj_r_pl):
+                return False
 
-        proj_t_pl = t_pl.projection(point)
-        if proj_t_pl == point:
-            return Geometry.check_point_in_rect(p, rects[4])
+            proj_t_pl = t_pl.projection(point)
+            if proj_t_pl == point:
+                return Geometry.check_point_in_rect(p, rects[4])
 
-        proj_d_pl = d_pl.projection(point)
-        if proj_d_pl == point:
-            return Geometry.check_point_in_rect(p, rects[5])
+            proj_d_pl = d_pl.projection(point)
+            if proj_d_pl == point:
+                return Geometry.check_point_in_rect(p, rects[5])
 
-        if point.distance(proj_t_pl) > proj_t_pl.distance(proj_d_pl) or point.distance(proj_d_pl) > proj_t_pl.distance(proj_d_pl):
-            return False
+            if point.distance(proj_t_pl) > proj_t_pl.distance(proj_d_pl) or point.distance(proj_d_pl) > proj_t_pl.distance(proj_d_pl):
+                return False
 
-        return True
+            return True
+
+        (point, polys) = point_polys
+        return reduce(lambda x, y: x and y, [check_point_in_polygon(point, poly) for poly in polys])
 
     @staticmethod
     def check_point_in_rect(p, r):
@@ -181,7 +186,7 @@ class Geometry:
     def rectangle_intersections_parallel(rects1, rects2):
         pairs = [(r1, r2) for r2 in rects2 for r1 in rects1 if not Geometry.are_parallel_noncoplanar(r1, r2)]
         pairs += [(r2, r1) for (r1, r2) in pairs]
-        points = Pool(16).map(Geometry.get_points, pairs)
+        points = Pool(8).map(Geometry.get_points, pairs)
         points = [item for sublist in points for item in sublist]
         return set(points)
                         
@@ -208,40 +213,50 @@ class Geometry:
     # convention is clockwise min starting with top left followed by clockwise max 
     @staticmethod
     def frustrum_intersect(f1, f2):
+        print(f1)
+        print(f2)
         [f1, f2] = [[[int(math.ceil(v)) for v in r] for r in f] for f in [f1, f2]]
         [poly1, poly2] = [Geometry.get_frustrum_rects(f) for f in [f1, f2]]
-        inters = Geometry.rectangle_intersections_parallel(poly1, poly2)
-        inters = [point for point in inters if Geometry.check_point_in_polygon(point, poly1) and Geometry.check_point_in_polygon(point, poly2)]
-        inters = [tuple([float(p.x), float(p.y), float(p.z)]) for p in inters]
-        return inters                          
+        start = datetime.datetime.now()        
+        points = Geometry.rectangle_intersections_parallel(poly1, poly2)
+        end = datetime.datetime.now()
+        print('rect_inters=%s' % (end-start))
+
+        polys = [poly1, poly2]
+        point_polys = [(p, polys) for p in points]
+        valid_idx = Pool(8).map(Geometry.check_point_in_polygons, point_polys)
+        points = [p for i, p in enumerate(points) if valid_idx[i]]
+        points = [tuple([float(p.x), float(p.y), float(p.z)]) for p in points]
+        return points                          
 
 def test_frustrums_intersection():
     import datetime
     start = datetime.datetime.now()
-    f1 = [
-        [142., 146.81832586,  58.81832586],
-        [142.        ,  29.18167414,  58.81832586],
-        [142.        ,  29.18167414, -58.81832586],
-        [142.        , 146.81832586, -58.81832586],
-        [40.        , 104.56854249,  16.56854249],
-        [40.        , 71.43145751, 16.56854249],
-        [ 40.        ,  71.43145751, -16.56854249],
-        [ 40.        , 104.56854249, -16.56854249]
-    ]
-    f2 = [
-        [133.       ,  55.0904038,  55.0904038],
-        [133.       , -55.0904038,  55.0904038],
-        [133.       , -55.0904038, -55.0904038],
-        [133.       ,  55.0904038, -55.0904038],
-        [40.        , 16.56854249, 16.56854249],
-        [ 40.        , -16.56854249,  16.56854249],
-        [ 40.        , -16.56854249, -16.56854249],
-        [ 40.        ,  16.56854249, -16.56854249]
-    ]
 
+    f1 = [
+        [42.35444824, -26.30975064,  20.71067812],
+        [53.77172135, -66.12651378,  20.71067812],
+        [53.77172135, -66.12651378, -20.71067812],
+        [42.35444824, -26.30975064, -20.71067812],
+        [169.41779297,  74.76099745,  82.84271247],
+        [215.0868854 , -84.50605513,  82.84271247],
+        [215.0868854 , -84.50605513, -82.84271247],
+        [169.41779297,  74.76099745, -82.84271247]
+    ]
+    
+    f2 = [
+        [50.        , 20.71067812, 20.71067812],
+        [ 50.        , -20.71067812,  20.71067812],
+        [ 50.        , -20.71067812, -20.71067812],
+        [ 50.        ,  20.71067812, -20.71067812],
+        [200.        ,  82.84271247,  82.84271247],
+        [200.        , -82.84271247,  82.84271247],
+        [200.        , -82.84271247, -82.84271247],
+        [200.        ,  82.84271247, -82.84271247]
+    ]    
     intersections = Geometry.frustrum_intersect(f1, f2)
     end = datetime.datetime.now()
-    print('time=%s' % (end-start))
+    print('tot=%s' % (end-start))
     for i in intersections:
         print(i)
     
