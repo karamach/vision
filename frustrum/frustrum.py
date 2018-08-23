@@ -141,7 +141,7 @@ def plot_frustrum(camera, inters):
         points = np.array([list(point) for point in points])
         
         if visibility[labels.index('inters_hull')]:
-            plt.figtext(.4, .05, 'score=%.2f\nhull volume=%.2f\nfrust union volume=%.2f' % (score, hull.volume, inters.frust_union_volume))
+            plt.figtext(.4, .05, 'view_matches=%s\nscore=%.2f\nhull volume=%.2f\nfrust union volume=%.2f' % (inters.get_match(), score, hull.volume, inters.frust_union_volume))
             ax2.plot_trisurf(points[:,0], points[:,1], points[:,2], triangles=hull.simplices, edgecolor='Gray')
             
         if visibility[labels.index('inters_points')]:
@@ -149,9 +149,9 @@ def plot_frustrum(camera, inters):
             ax2.scatter(ix, iy, iz, color='black', s=200, marker='o')            
             
     def plot_cameras():
-        for camera in inters.active_cameras:
-            plot_vecs(camera.curr_min_frust, camera.curr_origin, camera.color)
-            plot_vecs(camera.curr_max_frust, camera.curr_origin, camera.color)
+        for camera, col in zip(inters.active_cameras, ['cyan', 'magenta']):
+            plot_vecs(camera.curr_min_frust, camera.curr_origin, col)
+            plot_vecs(camera.curr_max_frust, camera.curr_origin, col)
                 
     def plot_view_poses():
                 
@@ -161,19 +161,31 @@ def plot_frustrum(camera, inters):
             for o, [x, y, z] in zip(origins, a_points):
                 ax1.plot([o[0]] + [x[0]], [o[1]] + [x[1]], [o[2]] + [x[2]], color='red', linestyle='-')        
                 ax1.plot([o[0]] + [y[0]], [o[1]] + [y[1]], [o[2]] + [y[2]], color='green', linestyle='-')        
-                ax1.plot([o[0]] + [z[0]], [o[1]] + [z[1]], [o[2]] + [z[2]], color='blue', linestyle='-')        
+                ax1.plot([o[0]] + [z[0]], [o[1]] + [z[1]], [o[2]] + [z[2]], color='blue', linestyle='-')
+                
             ax1.scatter(
                 [o[0] for o in origins],
                 [o[1] for o in origins],
                 [o[2] for o in origins],
                 color='black', s=10, marker='o', picker=5
-            )            
+            )
+            
+    def plot_active_camera_origins():
+        if visibility[labels.index('view_poses')]:
+            active_origins = [c.curr_origin for c in inters.active_cameras]
+            ax1.scatter(
+                [o[0] for o in active_origins],
+                [o[1] for o in active_origins],
+                [o[2] for o in active_origins],
+                c='red', s=50, marker='o'
+            )
+            
 
     def plot1():
         reset_axes1()
         plot_controls()
         plot_view_poses()
-        plot_intersection()
+        plot_active_camera_origins()
         fig.canvas.draw_idle()
 
     def plot2():
@@ -208,9 +220,9 @@ def plot_frustrum(camera, inters):
         else:
             inters.active_cameras[0] = inters.active_cameras[1]
             inters.active_cameras[1] = cameras[idx]
-        #plt.figtext(.1, .03, cameras[idx].pose_str())
         if len(inters.active_cameras) == 2:
             print(inters.active_cameras[0], inters.active_cameras[1])
+        plot1()
         plot2()
         
     fig.canvas.mpl_connect('pick_event', onpick)
@@ -221,7 +233,7 @@ def plot_frustrum(camera, inters):
     plt.show()    
     
 if '__main__' == __name__:
-    inters = Inters()
+    inters = Inters('./view_matches.txt')
     cameras = Camera.load_cameras('./gps_fov.txt')
     plot_frustrum(cameras, inters)
     

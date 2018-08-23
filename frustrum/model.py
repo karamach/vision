@@ -105,8 +105,9 @@ class Camera(object):
         
 class Inters:
 
-    def __init__(self):
+    def __init__(self, matches_file):
         self.reset()
+        self.matches = self.load_matches(matches_file)
 
     def reset(self):
         self.active_cameras = []
@@ -115,6 +116,16 @@ class Inters:
         self.score = 0
         self.state = False
         self.frust_union_volume = 0
+
+    def get_match(self):
+        v1, v2 = self.active_cameras[0].view_id, self.active_cameras[1].view_id
+        key = tuple(sorted([v1,v2]))
+        return self.matches[key] if key in self.matches else None
+        
+    def load_matches(self, matches_file):
+        with open(matches_file, 'r') as f:
+            lines = [line.rstrip().split('\t') for line in f.readlines()]
+            return dict([(tuple(sorted(row[:2])), row[2:])for row in lines])
 
 def create_model():
     def rads(angles):

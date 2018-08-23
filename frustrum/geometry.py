@@ -7,6 +7,7 @@ from utils import JobRunner
 
 from multiprocessing import Pool
 from functools import reduce
+import traceback
 
 import math
 
@@ -101,18 +102,27 @@ class Geometry:
 
     @staticmethod
     def check_point_in_rect(p, r):
-        r = np.array(r + [r[0]])
-        nvecs = [
-            np.cross(r[i+1]-r[i], p-r[i])
-            for i in range(len(r)-1)
-        ]
-
         def proc(vec):
-            vec = [v for v in vec if v != 0]
-            vec = [1 if v > 0 else 0 for v in vec]
-            return not vec or (sum(vec) == len(vec) or sum(vec) == 0)
+            try:
+                vec = [v for v in vec if v != 0]
+                vec = [1 if v > 0 else 0 for v in vec]
+                return not vec or (sum(vec) == len(vec) or sum(vec) == 0)
+            except ValueError as e:
+                print(' vec=', vec, ' p=', p, ' r=', r)
             
-        return proc([nvec[0] for nvec in nvecs]) and proc([nvec[1] for nvec in nvecs]) and proc([nvec[2] for nvec in nvecs])
+        
+        try:
+            r = np.append(r, [r[0]], axis=0)
+            nvecs = [
+                np.cross(r[i+1]-r[i], p[0]-r[i])
+                for i in range(len(r)-1)
+            ]
+            return proc([nvec[0] for nvec in nvecs]) and proc([nvec[1] for nvec in nvecs]) and proc([nvec[2] for nvec in nvecs])
+        except Exception as e:
+#            traceback.print_exc()
+            print(e)
+#            print(p, r)
+
     
     @staticmethod
     def segment_rectangle_intersection(s, r):
@@ -129,10 +139,12 @@ class Geometry:
 
             segments = [Segment3D(r[i], r[(i+1)%len(r)]) for i in range(len(r))]
             pois = [intersection(s, seg) for seg in segments]
+            print('1--', pois)
             pois = [p for p in pois if p and Geometry.check_point_in_rect(p, r)]
             return pois + list(s.points)
         else:    
             pois = intersection(pl, s)
+            print('2--', pois)
             pois = [p for p in pois if Geometry.check_point_in_rect(p, r)]
             return pois + list(s.points)
 
@@ -165,7 +177,7 @@ class Geometry:
         inter = [p for p in [Geometry.segment_rectangle_intersection(s, r2) for s in segs] if p]
         inter = [item for sublist in inter for item in sublist]
         return inter
-    
+
     @staticmethod
     def rectangle_intersections_parallel(rects1, rects2):
         pairs = [(r1, r2) for r2 in rects2 for r1 in rects1 if not Geometry.are_parallel_noncoplanar(r1, r2)]
