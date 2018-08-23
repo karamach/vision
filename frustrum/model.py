@@ -31,7 +31,7 @@ class Camera(object):
 
     @staticmethod
     def _update_unitfrust(h_ang, v_ang):
-        h_ang, v_ang = math.radians(h_ang), math.radians(v_ang)
+        h_ang, v_ang = h_ang, v_ang
         return np.array([
             [1, math.tan(h_ang/2), math.tan(v_ang/2)],
             [1, -math.tan(h_ang/2), math.tan(v_ang/2)],
@@ -70,15 +70,15 @@ class Camera(object):
         return o, min_f, max_f
 
     def pose_str(self):
-        return '%s;%s' % (str(self.curr_origin), str([math.degrees(a) for a in self.curr_ypr]))
+        return '%s,%s;%s' % (self.view_id, str(self.curr_origin), str([math.degrees(a) for a in self.curr_ypr]))
         
     def __str__(self):
         out = '-' * 25
-        out += '\norigin=%s\nh_ang=%s\nv_ang=%s\ncolor=%s\n'
+        out += '\nview_id=%s\norigin=%s\nh_ang=%s\nv_ang=%s\ncolor=%s\n'
         out += 'unit_frust=%s\nfrust_range=%s\nmin_frust=%s\n'
         out += 'max_frust=%s\ncurr_origin=%s\ncurr_min_frust=%s\n'
         out += 'curr_max_frust=%s\ncurr_ypr=%s\ncurr_xyz=%s\n'
-        return out % (
+        return out % (self.view_id,
             self.origin, self.h_ang, self.v_ang, self.color,
             self.unit_frust, self.frust_range, self.min_frust,
             self.max_frust, self.curr_origin, self.curr_min_frust,
@@ -100,7 +100,7 @@ class Camera(object):
         with open(camera_data_file, 'r') as inp:
             lines = [line.rstrip().split('\t') for line in inp.readlines()]
             lines = [[row[0]] + [float(v) for v in row[1:]] for row in lines]
-            cameras = [create_camera(*row, 5) for row in lines]
+            cameras = [create_camera(*row, 50) for row in lines]
             return cameras
         
 class Inters:
@@ -109,6 +109,7 @@ class Inters:
         self.reset()
 
     def reset(self):
+        self.active_cameras = []
         self.points = []
         self.hull = None
         self.score = 0

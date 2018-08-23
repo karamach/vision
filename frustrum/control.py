@@ -63,10 +63,11 @@ class IntersControl:
         self.inters = inters
         self.callback = callback
         self.score = 0
-    
+
     def update(self, val):
-        c1_f = self.cameras[0].curr_min_frust + self.cameras[0].curr_max_frust
-        c2_f = self.cameras[1].curr_min_frust + self.cameras[1].curr_max_frust
+        [c1, c2] = self.inters.active_cameras
+        c1_f = c1.curr_min_frust + c2.curr_max_frust
+        c2_f = c1.curr_min_frust + c2.curr_max_frust
         start = datetime.datetime.now()            
         points = Geometry.frustrum_intersect(c1_f, c2_f)
         end = datetime.datetime.now()
@@ -80,8 +81,8 @@ class IntersControl:
         print('[ok][found intersections ..]')
         self.inters.points = points
         self.inters.hull = ConvexHull(np.array(self.inters.points))
-        l1 = abs(self.cameras[0].frust_range[1] - self.cameras[0].frust_range[0])
-        l2 = abs(self.cameras[1].frust_range[1] - self.cameras[0].frust_range[0])
+        l1 = abs(c1.frust_range[1] - c2.frust_range[0])
+        l2 = abs(c2.frust_range[1] - c1.frust_range[0])
         self.inters.frust_union_volume =  float(Geometry.get_frustrum_volume(c1_f, l1)) + float(Geometry.get_frustrum_volume(c2_f, l2)) - float(self.inters.hull.volume)
         self.inters.score = self.inters.hull.volume / self.inters.frust_union_volume
         self.callback()

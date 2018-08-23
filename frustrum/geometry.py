@@ -108,7 +108,6 @@ class Geometry:
         ]
 
         def proc(vec):
-            print(vec)
             vec = [v for v in vec if v != 0]
             vec = [1 if v > 0 else 0 for v in vec]
             return not vec or (sum(vec) == len(vec) or sum(vec) == 0)
