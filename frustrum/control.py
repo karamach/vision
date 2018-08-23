@@ -40,7 +40,7 @@ class CameraFrustControl(object):
 
     def update(self, val):
         self.camera.frust_range[self.frust_idx] = val
-        self.camera.pose( self.camera.curr_ypr,  self.camera.curr_xyz)
+        self.camera.pose(self.camera.curr_ypr,  self.camera.curr_xyz)
         self.callback()
 
 class CameraAngleControl(object):
@@ -65,12 +65,6 @@ class IntersControl:
         self.score = 0
     
     def update(self, val):
-        self.inters.state = not self.inters.state
-        if not self.inters.state:
-            self.inters.reset()
-            self.callback()
-            return
-        
         c1_f = self.cameras[0].curr_min_frust + self.cameras[0].curr_max_frust
         c2_f = self.cameras[1].curr_min_frust + self.cameras[1].curr_max_frust
         start = datetime.datetime.now()            

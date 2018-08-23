@@ -46,21 +46,7 @@ class Pose:
         [x, y, z] = xyz
         return [point + np.array([x, y, z]) for point in points]
 
-    def simplify(self):
-        for i, tri1 in enumerate(self.tri):
-            for j,tri2 in enumerate(self.tri):
-                if j > i: 
-                    if self.isneighbor(tri1,tri2) and \
-                       self.inv[i]==self.inv[j]:
-                        self.grpinx[j] = self.grpinx[i]
-        groups = []
-        for i in np.unique(self.grpinx):
-            u = self.tri[self.grpinx == i]
-            u = np.concatenate([d for d in u])
-            u = self.order(u)
-            groups.append(u)
-        return groups    
-
+    
 class Geometry:
 
     @staticmethod
@@ -122,6 +108,7 @@ class Geometry:
         ]
 
         def proc(vec):
+            print(vec)
             vec = [v for v in vec if v != 0]
             vec = [1 if v > 0 else 0 for v in vec]
             return not vec or (sum(vec) == len(vec) or sum(vec) == 0)
@@ -164,8 +151,7 @@ class Geometry:
             if count[0]%2 == 0:
                 print('%s of %s' % (int(count[0]/2), num_rects))
             segs = [[r1[i], r1[(i+1)%len(r1)]] for i in range(len(r1))]
-            inter = [Geometry.segment_rectangle_intersection(s, r2) for s in segs]
-            inter = [p for p in inter if p]
+            inter = [p for p in [Geometry.segment_rectangle_intersection(s, r2) for s in segs] if p]
             inter = [item for sublist in inter for item in sublist]
             count[0] += 1
             return inter
@@ -176,9 +162,8 @@ class Geometry:
 
     def get_points(rect_pair):
         (r1, r2) = rect_pair
-        segs = [[r1[i], r1[(i+1)%len(r1)]] for i in range(len(r1))]
-        inter = [Geometry.segment_rectangle_intersection(s, r2) for s in segs]
-        inter = [p for p in inter if p]
+        segs = [[r1[i], r1[(i+1)%len(r1)]] for i in range(len(r1))]       
+        inter = [p for p in [Geometry.segment_rectangle_intersection(s, r2) for s in segs] if p]
         inter = [item for sublist in inter for item in sublist]
         return inter
     

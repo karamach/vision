@@ -6,7 +6,8 @@ from geometry import Pose as P
 
 class Camera(object):
 
-    def __init__(self, frust_range, angs, color='black'):
+    def __init__(self, frust_range, angs, color='black', view_id=0):
+        self.view_id = view_id
         self.origin = [0, 0, 0]
         self.h_ang = angs[0]
         self.v_ang = angs[1]
@@ -68,6 +69,9 @@ class Camera(object):
         self.curr_ypr, self.curr_xyz = ypr, xyz
         return o, min_f, max_f
 
+    def pose_str(self):
+        return '%s;%s' % (str(self.curr_origin), str([math.degrees(a) for a in self.curr_ypr]))
+        
     def __str__(self):
         out = '-' * 25
         out += '\norigin=%s\nh_ang=%s\nv_ang=%s\ncolor=%s\n'
@@ -80,6 +84,24 @@ class Camera(object):
             self.max_frust, self.curr_origin, self.curr_min_frust,
             self.curr_max_frust, self.curr_ypr, self.curr_xyz
         )
+
+    @staticmethod
+    def load_cameras(camera_data_file):
+
+        def create_camera(view_id, fx, fy, w, h, pitch, roll, yaw, x, y, z, d):
+            angs = [2*math.atan(w/(2*fx)),  2*math.atan(h/(2*fy))]
+            frust_range = [1, d]
+            ypr = [90-yaw if -90 <= yaw<= 180 else -(270+yaw), -pitch, roll]
+            xyz = [x, y, z]
+            camera = Camera(frust_range, angs, view_id=view_id)
+            camera.pose([math.radians(a) for a in ypr], xyz)
+            return camera
+        
+        with open(camera_data_file, 'r') as inp:
+            lines = [line.rstrip().split('\t') for line in inp.readlines()]
+            lines = [[row[0]] + [float(v) for v in row[1:]] for row in lines]
+            cameras = [create_camera(*row, 5) for row in lines]
+            return cameras
         
 class Inters:
 
