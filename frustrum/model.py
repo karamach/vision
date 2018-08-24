@@ -118,6 +118,8 @@ class Inters:
         self.frust_union_volume = 0
 
     def get_match(self):
+        if len(self.active_cameras) != 2:
+            return None
         v1, v2 = self.active_cameras[0].view_id, self.active_cameras[1].view_id
         key = tuple(sorted([v1,v2]))
         return self.matches[key] if key in self.matches else None

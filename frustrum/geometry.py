@@ -51,46 +51,45 @@ class Pose:
 class Geometry:
 
     @staticmethod
-    def check_point_in_polygons(point_polys):    
-        def check_point_in_polygon(p, rects):
-            f_pl = Plane(*rects[0][:3], eval=False)
-            b_pl = Plane(*rects[1][:3], eval=False)
-            l_pl = Plane(*rects[2][:3], eval=False)
-            r_pl = Plane(*rects[3][:3], eval=False)
-            t_pl = Plane(*rects[4][:3], eval=False)
-            d_pl = Plane(*rects[5][:3], eval=False)        
-
-            point = p
+    def check_point_in_polygons(point_polys):
+        
+        def check_point_in_polygon(point, rects):
+            f_pl = Plane(*rects[0][:3])
+            b_pl = Plane(*rects[1][:3])
+            l_pl = Plane(*rects[2][:3])
+            r_pl = Plane(*rects[3][:3])
+            t_pl = Plane(*rects[4][:3])
+            d_pl = Plane(*rects[5][:3])        
 
             proj_f_pl = f_pl.projection(point)        
             if proj_f_pl == point:
-                return Geometry.check_point_in_rect(p, rects[0])
+                return Geometry.check_point_in_rect(point, rects[0])
 
             proj_b_pl = b_pl.projection(point)
             if proj_b_pl == point:
-                return Geometry.check_point_in_rect(p, rects[1])
+                return Geometry.check_point_in_rect(point, rects[1])
 
             if point.distance(proj_f_pl) > proj_f_pl.distance(proj_b_pl) or point.distance(proj_b_pl) > proj_f_pl.distance(proj_b_pl):
                 return False
 
             proj_l_pl = l_pl.projection(point)        
             if proj_l_pl == point:
-                return Geometry.check_point_in_rect(p, rects[2])
+                return Geometry.check_point_in_rect(point, rects[2])
 
             proj_r_pl = r_pl.projection(point)
             if proj_r_pl == point:
-                return Geometry.check_point_in_rect(p, rects[3])
+                return Geometry.check_point_in_rect(point, rects[3])
 
             if point.distance(proj_l_pl) > proj_l_pl.distance(proj_r_pl) or point.distance(proj_r_pl) > proj_l_pl.distance(proj_r_pl):
                 return False
 
             proj_t_pl = t_pl.projection(point)
             if proj_t_pl == point:
-                return Geometry.check_point_in_rect(p, rects[4])
+                return Geometry.check_point_in_rect(point, rects[4])
 
             proj_d_pl = d_pl.projection(point)
             if proj_d_pl == point:
-                return Geometry.check_point_in_rect(p, rects[5])
+                return Geometry.check_point_in_rect(point, rects[5])
 
             if point.distance(proj_t_pl) > proj_t_pl.distance(proj_d_pl) or point.distance(proj_d_pl) > proj_t_pl.distance(proj_d_pl):
                 return False
@@ -102,30 +101,29 @@ class Geometry:
 
     @staticmethod
     def check_point_in_rect(p, r):
-        def proc(vec):
-            try:
-                vec = [v for v in vec if v != 0]
-                vec = [1 if v > 0 else 0 for v in vec]
-                return not vec or (sum(vec) == len(vec) or sum(vec) == 0)
-            except ValueError as e:
-                print(' vec=', vec, ' p=', p, ' r=', r)
-            
         
-        try:
-            r = np.append(r, [r[0]], axis=0)
-            nvecs = [
-                np.cross(r[i+1]-r[i], p[0]-r[i])
-                for i in range(len(r)-1)
-            ]
-            return proc([nvec[0] for nvec in nvecs]) and proc([nvec[1] for nvec in nvecs]) and proc([nvec[2] for nvec in nvecs])
-        except Exception as e:
-#            traceback.print_exc()
-            print(e)
-#            print(p, r)
+        def proc(vec):
+            vec = [v for v in vec if v != 0]
+            vec = [1 if v > 0 else 0 for v in vec]
+            return not vec or (sum(vec) == len(vec) or sum(vec) == 0)
 
+        r = np.append(r, [r[0]], axis=0)
+        nvecs = [
+            np.cross(r[i+1]-r[i], p-r[i])
+            for i in range(len(r)-1)
+        ]
+        return proc([nvec[0] for nvec in nvecs]) and proc([nvec[1] for nvec in nvecs]) and proc([nvec[2] for nvec in nvecs])
     
     @staticmethod
     def segment_rectangle_intersection(s, r):
+
+        def segment_intersection(s1, s2):
+            res = intersection(s1, s2)
+            if not res:
+                return res
+            res = res if not isinstance(res[0], Segment3D) else list(res[0].points)
+            return res
+            
         s, pl = Segment3D(*s), Plane(*r[:3])
         
         # if one of the points in rect, return both points
@@ -138,13 +136,12 @@ class Geometry:
                 return []
 
             segments = [Segment3D(r[i], r[(i+1)%len(r)]) for i in range(len(r))]
-            pois = [intersection(s, seg) for seg in segments]
-            print('1--', pois)
+            pois = [segment_intersection(s, seg) for seg in segments]
+            pois = [item for sublist in pois for item in sublist]
             pois = [p for p in pois if p and Geometry.check_point_in_rect(p, r)]
             return pois + list(s.points)
         else:    
             pois = intersection(pl, s)
-            print('2--', pois)
             pois = [p for p in pois if Geometry.check_point_in_rect(p, r)]
             return pois + list(s.points)
 
@@ -152,24 +149,6 @@ class Geometry:
     def are_parallel_noncoplanar(r1, r2):
         pl1, pl2 = Plane(*r1[:3]), Plane(*r2[:3])
         return pl1.is_parallel(pl2) and pl1.distance(pl2) > 0
-
-    @staticmethod
-    def rectangle_intersections(rects1, rects2):
-        num_rects = len(rects1)*len(rects2)
-        count = [0]
-        
-        def get_points(r1, r2):
-            if count[0]%2 == 0:
-                print('%s of %s' % (int(count[0]/2), num_rects))
-            segs = [[r1[i], r1[(i+1)%len(r1)]] for i in range(len(r1))]
-            inter = [p for p in [Geometry.segment_rectangle_intersection(s, r2) for s in segs] if p]
-            inter = [item for sublist in inter for item in sublist]
-            count[0] += 1
-            return inter
-                
-        points = [get_points(r1, r2) + get_points(r2, r1) for r2 in rects2 for r1 in rects1 if not Geometry.are_parallel_noncoplanar(r1, r2)]
-        points = [item for sublist in points for item in sublist]
-        return set(points)
 
     def get_points(rect_pair):
         (r1, r2) = rect_pair
@@ -182,7 +161,7 @@ class Geometry:
     def rectangle_intersections_parallel(rects1, rects2):
         pairs = [(r1, r2) for r2 in rects2 for r1 in rects1 if not Geometry.are_parallel_noncoplanar(r1, r2)]
         pairs += [(r2, r1) for (r1, r2) in pairs]
-        points = Pool(8).map(Geometry.get_points, pairs)
+        points = Pool(4).map(Geometry.get_points, pairs)
         points = [item for sublist in points for item in sublist]
         return set(points)
                         
@@ -229,27 +208,10 @@ def test_frustrums_intersection():
     import datetime
     start = datetime.datetime.now()
 
-    f1 = [
-        [42.35444824, -26.30975064,  20.71067812],
-        [53.77172135, -66.12651378,  20.71067812],
-        [53.77172135, -66.12651378, -20.71067812],
-        [42.35444824, -26.30975064, -20.71067812],
-        [169.41779297,  74.76099745,  82.84271247],
-        [215.0868854 , -84.50605513,  82.84271247],
-        [215.0868854 , -84.50605513, -82.84271247],
-        [169.41779297,  74.76099745, -82.84271247]
-    ]
-    
-    f2 = [
-        [50.        , 20.71067812, 20.71067812],
-        [ 50.        , -20.71067812,  20.71067812],
-        [ 50.        , -20.71067812, -20.71067812],
-        [ 50.        ,  20.71067812, -20.71067812],
-        [200.        ,  82.84271247,  82.84271247],
-        [200.        , -82.84271247,  82.84271247],
-        [200.        , -82.84271247, -82.84271247],
-        [200.        ,  82.84271247, -82.84271247]
-    ]    
+
+    f1 = [[41.33343944, -1.54369543, 20.08393261], [41.34371328, -0.56976876, 20.07792906], [40.60659891, -0.56976876, 18.81650898], [40.59632506, -1.54369543, 18.82251253], [24.06616139, 15.08603392, 24.60276534], [ 0.72658453,  3.99927529, 38.24131286], [-21.38496584,   3.99927529,   0.40192944], [  1.95461102,  15.08603392, -13.23661808]]
+    f2 = [[41.33343944, -1.54369543, 20.08393261], [41.34371328, -0.56976876, 20.07792906], [40.60659891, -0.56976876, 18.81650898], [40.59632506, -1.54369543, 18.82251253], [24.06616139, 15.08603392, 24.60276534], [ 0.72658453,  3.99927529, 38.24131286], [-21.38496584,   3.99927529,   0.40192944], [  1.95461102,  15.08603392, -13.23661808]]    
+
     intersections = Geometry.frustrum_intersect(f1, f2)
     end = datetime.datetime.now()
     print('tot=%s' % (end-start))
@@ -273,13 +235,6 @@ def test_point_in_rectangle():
     r = [[0, 0, 0], [10, 0, 0], [10,10, 0], [0,10,0]]
     p = [9, 9, 1]
     print(Geometry.check_point_in_rect(p, r))
-
-def test_rectangle_intersection():
-    r1 = [[[0, 0, 0], [10, 0, 0], [10,10, 0], [0,10,0]]]
-    r2 = [[[5, 1, 0], [5, 1, 10], [5, 9, 10], [5,9,0]]]
-    inters = Geometry.rectangle_intersections(r1, r2)
-    for inter in set(sum(inters, [])):
-        print(inter)
 
 def test_check_point_in_frustrum():
     start = datetime.datetime.now()    
@@ -307,3 +262,27 @@ if '__main__' == __name__:
     #test_point_in_rectangle()
     test_frustrums_intersection()
     #test_check_point_in_frustrum()
+
+
+
+'''
+    @staticmethod
+    def rectangle_intersections(rects1, rects2):
+        num_rects = len(rects1)*len(rects2)
+        count = [0]
+        
+        def get_points(r1, r2):
+            if count[0]%2 == 0:
+                print('%s of %s' % (int(count[0]/2), num_rects))
+            segs = [[r1[i], r1[(i+1)%len(r1)]] for i in range(len(r1))]
+            inter = [p for p in [Geometry.segment_rectangle_intersection(s, r2) for s in segs] if p]
+            inter = [item for sublist in inter for item in sublist]
+            count[0] += 1
+            return inter
+                
+        points = [get_points(r1, r2) + get_points(r2, r1) for r2 in rects2 for r1 in rects1 if not Geometry.are_parallel_noncoplanar(r1, r2)]
+        points = [item for sublist in points for item in sublist]
+        return set(points)
+
+
+'''

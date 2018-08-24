@@ -138,10 +138,10 @@ def plot_frustrum(camera, inters):
         points, hull, score = inters.points, inters.hull, inters.score
         if not len(points):
             return
-        points = np.array([list(point) for point in points])
         
+        points = np.array([list(point) for point in points])        
+        plt.figtext(.4, .05, 'view_matches=%s\nscore=%.2f\nhull volume=%.2f\nfrust union volume=%.2f' % (inters.get_match(), score, hull.volume, inters.frust_union_volume)) 
         if visibility[labels.index('inters_hull')]:
-            plt.figtext(.4, .05, 'view_matches=%s\nscore=%.2f\nhull volume=%.2f\nfrust union volume=%.2f' % (inters.get_match(), score, hull.volume, inters.frust_union_volume))
             ax2.plot_trisurf(points[:,0], points[:,1], points[:,2], triangles=hull.simplices, edgecolor='Gray')
             
         if visibility[labels.index('inters_points')]:
@@ -177,9 +177,8 @@ def plot_frustrum(camera, inters):
                 [o[0] for o in active_origins],
                 [o[1] for o in active_origins],
                 [o[2] for o in active_origins],
-                c='red', s=50, marker='o'
+                c='red', s=50, marker='o', picker=5
             )
-            
 
     def plot1():
         reset_axes1()
@@ -222,6 +221,7 @@ def plot_frustrum(camera, inters):
             inters.active_cameras[1] = cameras[idx]
         if len(inters.active_cameras) == 2:
             print(inters.active_cameras[0], inters.active_cameras[1])
+        plt.figtext(.4, .05, )                        
         plot1()
         plot2()
         
