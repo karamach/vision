@@ -4,6 +4,7 @@ import numpy as np
 from geometry import Geometry as G
 from geometry import Pose as P
 
+
 class Camera(object):
 
     def __init__(self, frust_range, angs, color='black', view_id=0):
@@ -102,48 +103,4 @@ class Camera(object):
             lines = [[row[0]] + [float(v) for v in row[1:]] for row in lines]
             cameras = [create_camera(*row, 50) for row in lines]
             return cameras
-        
-class Inters:
-
-    def __init__(self, matches_file):
-        self.reset()
-        self.matches = self.load_matches(matches_file)
-
-    def reset(self):
-        self.active_cameras = []
-        self.points = []
-        self.hull = None
-        self.score = 0
-        self.state = False
-        self.frust_union_volume = 0
-
-    def get_match(self):
-        if len(self.active_cameras) != 2:
-            return None
-        v1, v2 = self.active_cameras[0].view_id, self.active_cameras[1].view_id
-        key = tuple(sorted([v1,v2]))
-        return self.matches[key] if key in self.matches else None
-        
-    def load_matches(self, matches_file):
-        with open(matches_file, 'r') as f:
-            lines = [line.rstrip().split('\t') for line in f.readlines()]
-            return dict([(tuple(sorted(row[:2])), row[2:])for row in lines])
-
-def create_model():
-    def rads(angles):
-        return [math.radians(a) for a in angles]
-    
-    colors = ['magenta', 'cyan']
-    frust = [[0, 0], [0, 0]]
-    angs = [
-        [math.radians(0), math.radians(0)],
-        [math.radians(0), math.radians(0)]
-    ]
-    cameras = [
-        Camera(frust_range, angs, color)
-        for frust_range, angs, color in zip(frust, angs, colors)
-    ]
-    inters = Inters()
-    return cameras, inters    
-    
         

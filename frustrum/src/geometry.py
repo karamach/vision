@@ -47,6 +47,9 @@ class Pose:
         [x, y, z] = xyz
         return [point + np.array([x, y, z]) for point in points]
 
+
+        
+        
     
 class Geometry:
 

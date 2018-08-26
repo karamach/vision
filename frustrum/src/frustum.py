@@ -7,8 +7,15 @@ import math
 from matplotlib.widgets import Slider, Button, CheckButtons
 import matplotlib.gridspec as gridspec
 from geometry import Geometry
-from model import Camera, Inters, create_model
-from control import CameraTransControl, CameraRotControl, CameraFrustControl, IntersControl, CameraAngleControl
+
+from model.camera import Camera
+from model.inters import Inters
+
+from control.pose_control import CameraTransControl, CameraRotControl
+from control.frust_control import CameraFrustControl
+from control.inters_control import IntersControl
+from control.angle_control import CameraAngleControl
+
 from scipy.spatial import ConvexHull
 from matplotlib.patches import Polygon
 
@@ -139,8 +146,9 @@ def plot_frustrum(camera, inters):
         if not len(points):
             return
         
-        points = np.array([list(point) for point in points])        
-        plt.figtext(.4, .05, 'view_matches=%s\nscore=%.2f\nhull volume=%.2f\nfrust union volume=%.2f' % (inters.get_match(), score, hull.volume, inters.frust_union_volume)) 
+        points = np.array([list(point) for point in points])
+        s = 'view_matches=%s\nscore=%.2f\nhull volume=%.2f\nfrust union volume=%.2f' % (inters.get_match(), score, hull.volume, inters.frust_union_volume)
+        plt.figtext(.4, .05, s) 
         if visibility[labels.index('inters_hull')]:
             ax2.plot_trisurf(points[:,0], points[:,1], points[:,2], triangles=hull.simplices, edgecolor='Gray')
             
@@ -221,7 +229,6 @@ def plot_frustrum(camera, inters):
             inters.active_cameras[1] = cameras[idx]
         if len(inters.active_cameras) == 2:
             print(inters.active_cameras[0], inters.active_cameras[1])
-        plt.figtext(.4, .05, )                        
         plot1()
         plot2()
         
@@ -233,7 +240,7 @@ def plot_frustrum(camera, inters):
     plt.show()    
     
 if '__main__' == __name__:
-    inters = Inters('./view_matches.txt')
-    cameras = Camera.load_cameras('./gps_fov.txt')
+    inters = Inters('../data/view_matches.txt')
+    cameras = Camera.load_cameras('../data/gps_fov.txt')
     plot_frustrum(cameras, inters)
     
