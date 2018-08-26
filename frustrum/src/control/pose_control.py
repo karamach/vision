@@ -1,7 +1,7 @@
 import math
 import datetime
 
-from geometry import Geometry
+from utils.geometry import Geometry
 from scipy.spatial import ConvexHull
 import numpy as np
 

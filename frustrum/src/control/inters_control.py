@@ -1,10 +1,18 @@
+import datetime
+
+from scipy.spatial import ConvexHull
+from scipy.spatial.qhull import QhullError
+import numpy as np
+
+from utils.geometry import Geometry
+
+
 class IntersControl:
 
     def __init__(self, cameras, inters, callback):
         self.cameras = cameras
         self.inters = inters
         self.callback = callback
-        self.score = 0
 
     def update(self, val):
         [c1, c2] = self.inters.active_cameras
@@ -24,10 +32,11 @@ class IntersControl:
         self.inters.points = points
         try:
             self.inters.hull = ConvexHull(np.array(self.inters.points))
-        except scipy.spatial.qhull.QhullError as e:
+        except QhullError as e:
             print(e)
         l1 = abs(c1.frust_range[1] - c2.frust_range[0])
         l2 = abs(c2.frust_range[1] - c1.frust_range[0])
         self.inters.frust_union_volume =  float(Geometry.get_frustrum_volume(c1_f, l1)) + float(Geometry.get_frustrum_volume(c2_f, l2)) - float(self.inters.hull.volume)
         self.inters.score = self.inters.hull.volume / self.inters.frust_union_volume
-        self.callback()
+        if self.callback:
+            self.callback()

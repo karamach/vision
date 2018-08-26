@@ -6,7 +6,7 @@ import numpy as np
 import math
 from matplotlib.widgets import Slider, Button, CheckButtons
 import matplotlib.gridspec as gridspec
-from geometry import Geometry
+from utils.geometry import Geometry
 
 from model.camera import Camera
 from model.inters import Inters

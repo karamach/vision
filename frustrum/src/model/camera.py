@@ -1,8 +1,8 @@
 import math
 import numpy as np
 
-from geometry import Geometry as G
-from geometry import Pose as P
+from utils.geometry import Geometry as G
+from utils.pose import Pose as P
 
 
 class Camera(object):

@@ -1,5 +1,4 @@
 import math
-from geometry import Geometry
 from scipy.spatial import ConvexHull
 import numpy as np
 from model import Inters
