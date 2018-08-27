@@ -4,6 +4,7 @@ import numpy as np
 import datetime
 from scipy.spatial import ConvexHull
 from scipy.spatial.qhull import QhullError
+import traceback
 
 from multiprocessing import Pool
 from functools import reduce
@@ -95,7 +96,7 @@ class Geometry:
     def rectangle_intersections_parallel(rects1, rects2):
         pairs = [(r1, r2) for r2 in rects2 for r1 in rects1 if not Geometry.are_parallel_noncoplanar(r1, r2)]
         pairs += [(r2, r1) for (r1, r2) in pairs]
-        points = Pool(4).map(Geometry.get_points, pairs)
+        points = Pool(16).map(Geometry.get_points, pairs)
         points = [item for sublist in points for item in sublist]
         return set(points)
                         
