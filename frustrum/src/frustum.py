@@ -19,6 +19,8 @@ from control.angle_control import CameraAngleControl
 from scipy.spatial import ConvexHull
 from matplotlib.patches import Polygon
 
+import argparse
+
 def create_slider_axes(fig):
     s_axes = [[.17, .95, .15, .01]]    
     for i in range(19):
@@ -64,7 +66,7 @@ def create_camera_controls(cameras, callback):
     return cameraControls
 
 
-def plot_frustrum(camera, inters):
+def plot_frustrum(cameras, inters):
 
     fig = plt.figure(figsize=(10,6))
     gs = gridspec.GridSpec(1, 2, width_ratios=[1, 1])
@@ -147,8 +149,8 @@ def plot_frustrum(camera, inters):
             return
         
         points = np.array([list(point) for point in points])
-        s = 'view_matches=%s\nscore=%.2f\nhull volume=%.2f\nfrust union volume=%.2f' % (inters.get_match(), score, hull.volume, inters.frust_union_volume)
-        plt.figtext(.4, .05, s) 
+        s = 'i_score=%.2f\nhull volume=%.2f\nfrust union volume=%.2f\nview_matches=%s' % (score, hull.volume, inters.frust_union_volume, inters.get_match())
+        plt.figtext(.4, .025, s) 
         if visibility[labels.index('inters_hull')]:
             ax2.plot_trisurf(points[:,0], points[:,1], points[:,2], triangles=hull.simplices, edgecolor='Gray')
             
@@ -240,7 +242,18 @@ def plot_frustrum(camera, inters):
     plt.show()    
     
 if '__main__' == __name__:
-    inters = Inters('../data/view_matches.txt')
-    cameras = Camera.load_cameras('../data/gps_fov.txt')
-    plot_frustrum(cameras, inters)
+
+    parser = argparse.ArgumentParser(description='Process some integers.')
+    parser.add_argument('--matches_file', required=True)
+    parser.add_argument('--gps_file', required=True)
+    parser.add_argument('--view1', required=False)
+    parser.add_argument('--view2', required=False)
+    args = parser.parse_args()
+
+    inters = Inters(Inters.load_matches(args.matches_file))
+    view_cameras = Camera.load_cameras(args.gps_file)
+    if args.view1 and args.view2:
+        v1, v2 = args.view1, args.view2
+        inters.active_cameras = [view_cameras[v1], view_cameras[v2]]
+    plot_frustrum(list(view_cameras.values()), inters)
     

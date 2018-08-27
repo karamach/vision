@@ -121,9 +121,9 @@ class Geometry:
     # convention is clockwise min starting with top left followed by clockwise max 
     @staticmethod
     def frustrum_intersect(f1, f2):
-        #print(f1)
-        #print(f2)
-        [f1, f2] = [[[int(math.ceil(v)) for v in r] for r in f] for f in [f1, f2]]
+        print(f1)
+        print(f2)
+        [f1, f2] = [[[v for v in r] for r in f] for f in [f1, f2]]
         [poly1, poly2] = [Geometry.get_frustrum_rects(f) for f in [f1, f2]]
         start = datetime.datetime.now()        
         points = Geometry.rectangle_intersections_parallel(poly1, poly2)

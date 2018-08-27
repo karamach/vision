@@ -11,7 +11,7 @@ def compute_scores():
     min_m = min([float(v[1]) for v in matches.values() if v[0] == 'True'])
 
     view_cameras = dict([(c.view_id, c) for c in cameras])
-    print('#view1\tview2\tmscore\tiscore')
+    print('#view1\tview2\tmatch_cnt\tmscore\tiscore\tmatched')
     for k, v in matches.items():
         (v1, v2) = k    
         [matched, match_cnt] = matches[tuple(sorted([v1,v2]))]
@@ -26,8 +26,10 @@ def compute_scores():
         try:
             vol1 = Geometry.get_frustrum_volume(c1_f, l1)
             vol2 = Geometry.get_frustrum_volume(c2_f, l2)
-            pois = Geometry.frustrum_intersect(c1_f, c2_f)        
-            iscore = Geometry.frustrum_intersection_score(vol1, vol2, pois)
+            pois = Geometry.frustrum_intersect(c1_f, c2_f)
+            iscore = 0.0
+            if pois:
+                iscore = Geometry.frustrum_intersection_score(vol1, vol2, pois)
             mscore = 0 if match_cnt == 0 else (match_cnt-min_m)/(max_m-min_m)
             s = '%s\t%s\t%s\t%s\t%s\t%s' % (v1, v2, match_cnt, mscore, iscore, matched)
             print(s)

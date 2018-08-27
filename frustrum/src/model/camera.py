@@ -7,6 +7,8 @@ from utils.pose import Pose as P
 
 class Camera(object):
 
+    view_cameras = {}
+
     def __init__(self, frust_range, angs, color='black', view_id=0):
         self.view_id = view_id
         self.origin = [0, 0, 0]
@@ -102,5 +104,6 @@ class Camera(object):
             lines = [line.rstrip().split('\t') for line in inp.readlines()]
             lines = [[row[0]] + [float(v) for v in row[1:]] for row in lines]
             cameras = [create_camera(*row, 50) for row in lines]
-            return cameras
+            Camera.view_cameras = dict([(c.view_id, c) for c in cameras])
+            return Camera.view_cameras
         
