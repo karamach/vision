@@ -1,3 +1,6 @@
+from control.inters_control import IntersControl
+# TODO Have to include inters control first due to  CppIntersControl dependency pybind11 causing issue. Need to investigate. KR
+
 import matplotlib.pyplot as plt
 import matplotlib
 from mpl_toolkits.mplot3d import Axes3D
@@ -13,7 +16,6 @@ from model.inters import Inters
 
 from control.pose_control import CameraTransControl, CameraRotControl
 from control.frust_control import CameraFrustControl
-from control.inters_control import IntersControl
 from control.angle_control import CameraAngleControl
 
 from scipy.spatial import ConvexHull
@@ -22,7 +24,7 @@ from matplotlib.patches import Polygon
 import argparse
 
 def create_slider_axes(fig):
-    s_axes = [[.17, .95, .15, .01]]    
+    s_axes = [[.05, .65, .15, .01]]    
     for i in range(19):
         prev = s_axes[-1]
         s_axes.append([prev[0], prev[1]-.02, prev[2], prev[3]])
@@ -68,21 +70,20 @@ def create_camera_controls(cameras, callback):
 
 def plot_frustrum(cameras, inters):
 
-    fig = plt.figure(figsize=(10,6))
-    gs = gridspec.GridSpec(1, 2, width_ratios=[1, 1])
-    ax1 = plt.subplot(gs[0], projection='3d')
+    fig = plt.figure(figsize=(20,20), dpi=100)
+    gs = gridspec.GridSpec(1, 2, width_ratios=[1, 4])
     ax2 = plt.subplot(gs[1], projection='3d')
     ax_mins = [-40, -20]
     ax_maxs = [40, 20]
 
     # Checkbuttons for visibility control
     rax = plt.axes([0.02, 0.8, 0.1, 0.15])
-    labels = ['controls', 'view_poses', 'inters_points', 'inters_hull']
+    labels = ['show_controls','show_inters_points', 'show_inters_hull',  'use_cpp']
     visibility = [False, False, False, False]
     check = CheckButtons(rax, labels, visibility)
 
     # intersection button
-    b_axes = fig.add_axes([.8, .93, .15, .03])
+    b_axes = fig.add_axes([.05, .1, .15, .03])
     b_inters = Button(b_axes, 'compute_intersection')
 
     # sliders
@@ -97,18 +98,6 @@ def plot_frustrum(cameras, inters):
     # fig texts
     fig_txt = []
     
-    def reset_axes1():
-        ax1.clear()
-        ax1.set_xlabel('X')
-        ax1.set_ylabel('Y')
-        ax1.set_zlabel('Z')
-        ax1.plot([ax_mins[0], ax_maxs[0]], [0, 0], [0, 0], color='red')
-        ax1.plot([0, 0], [ax_mins[0], ax_maxs[0]], [0, 0], color='green')
-        ax1.plot([0, 0], [0, 0], [ax_mins[0], ax_maxs[0]], color='blue')
-        for txt in fig.texts:
-            txt.remove()
-        fig.tight_layout()
-
     def reset_axes2():
         ax2.clear()
         ax2.set_xlabel('X')
@@ -123,7 +112,7 @@ def plot_frustrum(cameras, inters):
         
 
     def plot_controls():
-        if not visibility[labels.index('controls')]:
+        if not visibility[labels.index('show_controls')]:
             for s in slider_axes:
                 s.set_visible(False)
         else:
@@ -149,12 +138,13 @@ def plot_frustrum(cameras, inters):
             return
         
         points = np.array([list(point) for point in points])
-        s = 'i_score=%.2f\nhull volume=%.2f\nfrust union volume=%.2f\nview_matches=%s' % (score, hull.volume, inters.frust_union_volume, inters.get_match())
+        hull_volume = 0 if not hull else hull.volume
+        s = 'i_score=%.2f\nhull volume=%.2f\nfrust union volume=%.2f\n' % (score, hull_volume, inters.frust_union_volume)
         plt.figtext(.4, .025, s) 
-        if visibility[labels.index('inters_hull')]:
+        if visibility[labels.index('show_inters_hull')]:
             ax2.plot_trisurf(points[:,0], points[:,1], points[:,2], triangles=hull.simplices, edgecolor='Gray')
             
-        if visibility[labels.index('inters_points')]:
+        if visibility[labels.index('show_inters_points')]:
             ix, iy, iz = [p[0] for p in points],  [p[1] for p in points],  [p[2] for p in points]            
             ax2.scatter(ix, iy, iz, color='black', s=200, marker='o')            
             
@@ -163,97 +153,36 @@ def plot_frustrum(cameras, inters):
             plot_vecs(camera.curr_min_frust, camera.curr_origin, col)
             plot_vecs(camera.curr_max_frust, camera.curr_origin, col)
                 
-    def plot_view_poses():
-                
-        if visibility[labels.index('view_poses')]:
-            origins = [c.curr_origin for c in cameras]
-            a_points = [c.curr_axes_points for c in cameras]
-            for o, [x, y, z] in zip(origins, a_points):
-                ax1.plot([o[0]] + [x[0]], [o[1]] + [x[1]], [o[2]] + [x[2]], color='red', linestyle='-')        
-                ax1.plot([o[0]] + [y[0]], [o[1]] + [y[1]], [o[2]] + [y[2]], color='green', linestyle='-')        
-                ax1.plot([o[0]] + [z[0]], [o[1]] + [z[1]], [o[2]] + [z[2]], color='blue', linestyle='-')
-                
-            ax1.scatter(
-                [o[0] for o in origins],
-                [o[1] for o in origins],
-                [o[2] for o in origins],
-                color='black', s=10, marker='o', picker=5
-            )
-            
-    def plot_active_camera_origins():
-        if visibility[labels.index('view_poses')]:
-            active_origins = [c.curr_origin for c in inters.active_cameras]
-            ax1.scatter(
-                [o[0] for o in active_origins],
-                [o[1] for o in active_origins],
-                [o[2] for o in active_origins],
-                c='red', s=50, marker='o', picker=5
-            )
-
-    def plot1():
-        reset_axes1()
-        plot_controls()
-        plot_view_poses()
-        plot_active_camera_origins()
-        fig.canvas.draw_idle()
-
     def plot2():
         reset_axes2()
         plot_cameras()
         plot_intersection()
         fig.canvas.draw_idle()
         
+    intersControl = IntersControl(cameras, inters, plot2)
 
     def checkbox_update(label):
         index = labels.index(label)
         visibility[index] = not visibility[index]
-        plot1()
+        intersControl.use_cpp = visibility[-1]
         plot2()
         
     check.on_clicked(checkbox_update)
         
-    intersControl = IntersControl(cameras, inters, plot2)
     b_inters.on_clicked(intersControl.update)
 
     cameraControls = create_camera_controls(cameras, plot2)   
     for s, c in zip(sliders, cameraControls):
         s.on_changed(c.update)
 
-    def onpick(event):
-        idx = event.ind[0]
-        [x, y, z] = [int(v) for v in cameras[idx].curr_origin]
-        if len(inters.active_cameras) == 0:
-            inters.active_cameras.append(cameras[idx])
-        elif len(inters.active_cameras) == 1:
-            inters.active_cameras.append(cameras[idx])
-        else:
-            inters.active_cameras[0] = inters.active_cameras[1]
-            inters.active_cameras[1] = cameras[idx]
-        if len(inters.active_cameras) == 2:
-            print(inters.active_cameras[0], inters.active_cameras[1])
-        plot1()
-        plot2()
-        
-    fig.canvas.mpl_connect('pick_event', onpick)
-
-        
-    plot1()
     plot2()
     plt.show()    
     
 if '__main__' == __name__:
-
-    parser = argparse.ArgumentParser(description='Process some integers.')
-    parser.add_argument('--matches_file', required=True)
-    parser.add_argument('--gps_file', required=True)
-    parser.add_argument('--view1', required=False)
-    parser.add_argument('--view2', required=False)
-    args = parser.parse_args()
-
-    inters = Inters(Inters.load_matches(args.matches_file))
-    view_cameras = Camera.load_cameras(args.gps_file)
-    if args.view1 and args.view2:
-        v1, v2 = args.view1, args.view2
-        inters.active_cameras = [view_cameras[v1], view_cameras[v2]]
-    plot_frustrum(list(view_cameras.values()), inters)
+    
+    cameras = [Camera([0, 0], [20, 20], 'black', 0), Camera([0, 0], [20, 20], 'red', 0)]
+    inters = Inters([])
+    inters.active_cameras = cameras
+    
+    plot_frustrum(cameras, inters)
     

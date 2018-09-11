@@ -29,8 +29,8 @@ class Pose:
                 [0, math.sin(gamma), math.cos(gamma)]
         ])
 
-#       R = yaw(y).dot(pitch(p).dot(roll(r)))
-        R = roll(r).dot(pitch(p).dot(yaw(y)))
+#       R = yaw(y).dot(pitch(p).dot(roll(r)))  # current body frame
+        R = roll(r).dot(pitch(p).dot(yaw(y)))  # fixed frame
         return [np.dot(R, point) for point in points]        
         
     def trans(points, xyz):
