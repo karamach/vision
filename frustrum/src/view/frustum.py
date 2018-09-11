@@ -86,6 +86,10 @@ def plot_frustrum(cameras, inters):
     b_axes = fig.add_axes([.8, .93, .15, .03])
     b_inters = Button(b_axes, 'compute_intersection')
 
+    # next button
+    b1_axes = fig.add_axes([.9, .07, .07, .03])
+    b1_nxt = Button(b1_axes, 'next')
+    
     # sliders
     slider_axes = create_slider_axes(fig)
     names = [
@@ -134,7 +138,8 @@ def plot_frustrum(cameras, inters):
         
         points = np.array([list(point) for point in points])
         hull_volume = 0 if not hull else hull.volume
-        s = 'i_score=%.2f\nhull volume=%.2f\nfrust union volume=%.2f\nview_matches=%s' % (score, hull_volume, inters.frust_union_volume, inters.get_match())
+        views = ','.join([str(c.view_id) for c in inters.active_cameras])
+        s = 'views=%s\ni_score=%.2f\nhull volume=%.2f\nfrust union volume=%.2f\nview_matches=%s' % (views, score, hull_volume, inters.frust_union_volume, inters.get_match())
         plt.figtext(.4, .025, s) 
         if visibility[labels.index('inters_hull')]:
             ax.plot_trisurf(points[:,0], points[:,1], points[:,2], triangles=hull.simplices, edgecolor='Gray')
@@ -196,8 +201,9 @@ def plot_frustrum(cameras, inters):
         
     check.on_clicked(checkbox_update)
         
-    intersControl = IntersControl(cameras, inters, plot2)
+    intersControl = IntersControl(cameras, inters, [plot1, plot2])
     b_inters.on_clicked(intersControl.update)
+    b1_nxt.on_clicked(intersControl.incrementAndUpdate)    
 
     cameraControls = create_camera_controls(cameras, plot2)   
     for s, c in zip(sliders, cameraControls):

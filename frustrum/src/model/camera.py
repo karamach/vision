@@ -96,7 +96,7 @@ class Camera(object):
             frust_range = [1, d]
             ypr = [90-yaw if -90 <= yaw<= 180 else -(270+yaw), -pitch, roll]
             xyz = [x, y, z]
-            camera = Camera(frust_range, angs, view_id=view_id)
+            camera = Camera(frust_range, angs, view_id=int(view_id))
             camera.pose([math.radians(a) for a in ypr], xyz)
             return camera
         

@@ -26,5 +26,5 @@ class Inters:
     def load_matches( matches_file):
         with open(matches_file, 'r') as f:
             lines = [line.rstrip().split('\t') for line in f.readlines()]
-            matches =  dict([(tuple(sorted(row[:2])), row[2:])for row in lines])
+            matches =  dict([(tuple(sorted([int(v) for v in row[:2]])), row[2:])for row in lines])
             return matches
