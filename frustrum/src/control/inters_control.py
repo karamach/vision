@@ -18,23 +18,28 @@ class IntersControl:
         self.use_cpp = False
 
     def compute_intersection(self, c1_f, c2_f):
-        #if not self.use_cpp:
-        return Geometry.frustrum_intersect(c1_f, c2_f)
+        if not self.use_cpp:
+            return Geometry.frustrum_intersect(c1_f, c2_f)
 
-        #f1 = PnFrustum(*[PnPoint(*point) for point in c1_f])
-        #f2 = PnFrustum(*[PnPoint(*point) for point in c2_f])
-        #pois = PnPointList()
-        #f1.intersect(f2, pois)
-        #coords = [[v for v in p.get()] for i, p in enumerate(pois)]
-        #return coords        
+        return Geometry.frustrum_intersect(c1_f, c2_f)
+        '''
+        f1 = PnFrustum(*[PnPoint(*point) for point in c1_f])
+        f2 = PnFrustum(*[PnPoint(*point) for point in c2_f])
+        pois = PnPointList()
+        f1.intersect(f2, pois)
+        coords = [[v for v in p.get()] for i, p in enumerate(pois)]
+        return coords        
+        '''
 
     def incrementAndUpdate(self, val):
         view_ids = [c.view_id for c in self.inters.active_cameras]
-        self.inters.active_cameras = [Camera.view_cameras[view_ids[0]], Camera.view_cameras[view_ids[1]+1]]
-        self.update(None)
+        [id1, id2] = view_ids
+        id2 = Camera.getNextViewId(id2)
+        id1 = id1 if id2 >= view_ids[1] else Camera.getNextViewId(id1)
+        self.inters.active_cameras = [Camera.view_cameras[id1], Camera.view_cameras[id2]]
+        self.update()
         
-    def update(self, val):
-        print('----', val)
+    def update(self, val=None):
         [c1, c2] = self.inters.active_cameras
         c1_f = c1.curr_min_frust + c1.curr_max_frust
         c2_f = c2.curr_min_frust + c2.curr_max_frust
@@ -44,8 +49,10 @@ class IntersControl:
         print('intersection_compute_time=%s' % (end-start))        
         if not points:
             print('[ok][no intersections ..]')
-            self.inters.reset()
-            self.callback()
+            self.inters.points = []
+            self.inters.score = 0
+            for cb in self.callbacks:
+                cb()
             return
             
         print('[ok][found intersections ..][points=%s]' % points)
