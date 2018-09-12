@@ -27,8 +27,7 @@ if '__main__' == __name__:
     args = parser.parse_args()
 
     # gps data for cameras
-    #gps_data = get_gps_data(args.project, args.instance, args.client, args.site, args.session)
-    gps_data = get_gps_data(args.project, args.instance, 'prenav_assets', args.site, args.session)
+    gps_data = get_gps_data(args.project, args.instance, args.client, args.site, args.session)
     
     # camera intrinsics
     [camera_serial_number] = get_camera_serial_number(args.project, args.instance, args.client, args.site, args.session)
