@@ -27,8 +27,8 @@ if '__main__' == __name__:
     args = parser.parse_args()
 
     # gps data for cameras
-    gps_data = get_gps_data(args.project, args.instance, args.client, args.site, args.session)
-    #gps_data = get_gps_data(args.project, args.instance, 'prenav_assets', args.site, args.session)
+    #gps_data = get_gps_data(args.project, args.instance, args.client, args.site, args.session)
+    gps_data = get_gps_data(args.project, args.instance, 'prenav_assets', args.site, args.session)
     
     # camera intrinsics
     [camera_serial_number] = get_camera_serial_number(args.project, args.instance, args.client, args.site, args.session)
@@ -42,7 +42,7 @@ if '__main__' == __name__:
 
     # Setup intersection object
     inters = Inters(view_matches)
-    inters.active_cameras = [view_cameras[args.view1], view_cameras[args.view2]]
+    inters.active_cameras = [view_cameras[int(args.view1)], view_cameras[int(args.view2)]]
     
     plot_frustrum(list(view_cameras.values()), inters)
     

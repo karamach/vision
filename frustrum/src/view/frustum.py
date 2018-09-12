@@ -33,8 +33,8 @@ def plot_frustrum(cameras, inters):
 
     # Checkbuttons for visibility control
     rax = plt.axes([0.02, 0.8, 0.1, 0.15])
-    labels = ['view_poses', 'inters_points', 'inters_hull', 'use_cpp']
-    visibility = [True, False, False, False]
+    labels = ['inters_points', 'inters_hull', 'use_cpp']
+    visibility = [False, False, False]
     check = CheckButtons(rax, labels, visibility)
 
     # intersection button
@@ -46,7 +46,7 @@ def plot_frustrum(cameras, inters):
     b1_nxt = Button(b1_axes, 'next')
 
     # fig texts
-    fig_txt = []
+    fig_txt = None
 
     # active camera pose plot
     active_camera_scatter = None
@@ -59,6 +59,8 @@ def plot_frustrum(cameras, inters):
         ax.plot([ax_mins[0], ax_maxs[0]], [0, 0], [0, 0], color='red')
         ax.plot([0, 0], [ax_mins[0], ax_maxs[0]], [0, 0], color='green')
         ax.plot([0, 0], [0, 0], [ax_mins[0], ax_maxs[0]], color='blue')
+
+        nonlocal fig
         for txt in fig.texts:
             txt.remove()
         fig.tight_layout()
@@ -98,64 +100,85 @@ def plot_frustrum(cameras, inters):
                 
     def plot_view_poses(ax):
                 
-        if visibility[labels.index('view_poses')]:
-            origins = [c.curr_origin for c in cameras]
-            a_points = [c.curr_axes_points for c in cameras]
-            for o, [x, y, z] in zip(origins, a_points):
-                ax.plot([o[0]] + [x[0]], [o[1]] + [x[1]], [o[2]] + [x[2]], color='red', linestyle='-')        
-                ax.plot([o[0]] + [y[0]], [o[1]] + [y[1]], [o[2]] + [y[2]], color='green', linestyle='-')        
-                ax.plot([o[0]] + [z[0]], [o[1]] + [z[1]], [o[2]] + [z[2]], color='blue', linestyle='-')
+        origins = [c.curr_origin for c in cameras]
+        a_points = [c.curr_axes_points for c in cameras]
+        for o, [x, y, z] in zip(origins, a_points):
+            ax.plot([o[0]] + [x[0]], [o[1]] + [x[1]], [o[2]] + [x[2]], color='red', linestyle='-')        
+            ax.plot([o[0]] + [y[0]], [o[1]] + [y[1]], [o[2]] + [y[2]], color='green', linestyle='-')        
+            ax.plot([o[0]] + [z[0]], [o[1]] + [z[1]], [o[2]] + [z[2]], color='blue', linestyle='-')
                 
-            ax.scatter(
-                [o[0] for o in origins],
-                [o[1] for o in origins],
-                [o[2] for o in origins],
-                color='black', s=10, marker='o', picker=5
-            )
+        ax.scatter(
+            [o[0] for o in origins],
+            [o[1] for o in origins],
+            [o[2] for o in origins],
+            color='black', s=10, marker='o', picker=5
+        )
             
     def plot_active_camera_origins():
-        if visibility[labels.index('view_poses')]:
-            active_origins = [c.curr_origin for c in inters.active_cameras]
-            nonlocal active_camera_scatter
-            if active_camera_scatter:
-                active_camera_scatter.remove()
-            active_camera_scatter = ax1.scatter(
-                [o[0] for o in active_origins],
-                [o[1] for o in active_origins],
-                [o[2] for o in active_origins],
-                c='red', s=50, marker='o', picker=5
-            )
+        active_origins = [c.curr_origin for c in inters.active_cameras]
+        nonlocal active_camera_scatter
+        if active_camera_scatter:
+            print(active_camera_scatter)
+            active_camera_scatter.remove()
+        active_camera_scatter = ax1.scatter(
+            [o[0] for o in active_origins],
+            [o[1] for o in active_origins],
+            [o[2] for o in active_origins],
+            c='red', s=50, marker='o', picker=5
+        )
+        #fig.canvas.draw_idle()
+            
 
     def plot_data():
-        s = 'views=%s\ni_score=%.2f\nview_matches=%s' % (views, score, inters.get_match())
-        plt.figtext(.4, .025, s) 
+        views = ','.join([str(c.view_id) for c in inters.active_cameras])
+        s = 'views=%s\ni_score=%.2f\nview_matches=%s' % (views, inters.score, inters.get_match())
+        nonlocal fig_txt
+        if fig_txt:
+            fig_txt.remove()
+        fig_txt = plt.figtext(.4, .025, s)
+        #fig.canvas.draw_idle()        
 
     def plot1():
         reset_axes(ax1)
         plot_view_poses(ax1)
         plot_active_camera_origins()
-        fig.canvas.draw_idle()
+        #fig.canvas.draw_idle()
 
     def plot2():
         reset_axes(ax2)
         plot_cameras()
         plot_intersection(ax2)
-        fig.canvas.draw_idle()
+        #fig.canvas.draw_idle()
         
     def checkbox_update(label):
         index = labels.index(label)
         visibility[index] = not visibility[index]
         intersControl.use_cpp = visibility[-1]
-        plot1()
         plot2()
         
     check.on_clicked(checkbox_update)
         
-    intersControl = IntersControl(cameras, inters, [plot1, plot2])
+    intersControl = IntersControl(cameras, inters)
     intersControl.use_cpp = visibility[-1]
+
+    def oninters(val):
+        nonlocal intersControl
+        intersControl.update(val)
+        plot_data()
+        plot2()
+        fig.canvas.draw_idle()            
     
     b_inters.on_clicked(intersControl.update)
-    b1_nxt.on_clicked(intersControl.incrementAndUpdate)    
+
+    def onnext(val):
+        nonlocal intersControl
+        intersControl.incrementAndUpdate(val)
+        plot_active_camera_origins()
+        plot_data()
+        plot2()
+        fig.canvas.draw_idle()        
+    
+    b1_nxt.on_clicked(onnext)    
 
     def onpick(event):
         idx = event.ind[0]
@@ -172,10 +195,11 @@ def plot_frustrum(cameras, inters):
         plot_active_camera_origins()
         plot_data()
         plot2()
+        fig.canvas.draw_idle()        
         
     fig.canvas.mpl_connect('pick_event', onpick)
         
     plot1()
     plot2()
-        
+    fig.canvas.draw_idle()    
     plt.show()    

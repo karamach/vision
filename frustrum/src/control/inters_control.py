@@ -11,10 +11,9 @@ from utils.geometry import Geometry
 
 class IntersControl:
 
-    def __init__(self, cameras, inters, callbacks):
+    def __init__(self, cameras, inters):
         self.cameras = cameras
         self.inters = inters
-        self.callbacks = callbacks
         self.use_cpp = False
 
     def compute_intersection(self, c1_f, c2_f):
@@ -37,7 +36,7 @@ class IntersControl:
         id2 = Camera.getNextViewId(id2)
         id1 = id1 if id2 >= view_ids[1] else Camera.getNextViewId(id1)
         self.inters.active_cameras = [Camera.view_cameras[id1], Camera.view_cameras[id2]]
-        self.update()
+        #self.update()
         
     def update(self, val=None):
         [c1, c2] = self.inters.active_cameras
@@ -51,8 +50,6 @@ class IntersControl:
             print('[ok][no intersections ..]')
             self.inters.points = []
             self.inters.score = 0
-            for cb in self.callbacks:
-                cb()
             return
             
         print('[ok][found intersections ..][points=%s]' % points)
@@ -66,8 +63,5 @@ class IntersControl:
             self.inters.score = self.inters.hull.volume / self.inters.frust_union_volume
         except QhullError as e:
             print(e)
-        if self.callbacks:
-            for cb in self.callbacks:
-                cb()
 
     
