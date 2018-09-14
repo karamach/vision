@@ -36,7 +36,8 @@ class IntersControl:
         id2 = Camera.getNextViewId(id2)
         id1 = id1 if id2 >= view_ids[1] else Camera.getNextViewId(id1)
         self.inters.active_cameras = [Camera.view_cameras[id1], Camera.view_cameras[id2]]
-        #self.update()
+        if  val:
+            self.update()
         
     def update(self, val=None):
         [c1, c2] = self.inters.active_cameras

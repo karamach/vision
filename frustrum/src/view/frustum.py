@@ -33,17 +33,15 @@ def plot_frustrum(cameras, inters):
 
     # Checkbuttons for visibility control
     rax = plt.axes([0.02, 0.8, 0.1, 0.15])
-    labels = ['inters_points', 'inters_hull', 'use_cpp']
-    visibility = [False, False, False]
-    check = CheckButtons(rax, labels, visibility)
-
-    # intersection button
-    b_axes = fig.add_axes([.8, .93, .15, .03])
-    b_inters = Button(b_axes, 'compute_intersection')
+    labels = ['inters_points', 'inters_hull', 'compute_intersection', 'use_cpp']
+    visibility = dict([(label, False) for label in labels])
+    check = CheckButtons(rax, labels, [visibility[label] for label in labels])
 
     # next button
-    b1_axes = fig.add_axes([.9, .07, .07, .03])
-    b1_nxt = Button(b1_axes, 'next')
+    b1_prev_axes = fig.add_axes([.83, .04, .07, .03])
+    b1_prev = Button(b1_prev_axes, 'prev')    
+    b1_nxt_axes = fig.add_axes([.9, .04, .07, .03])
+    b1_nxt = Button(b1_nxt_axes, 'next')    
 
     # fig texts
     fig_txt = None
@@ -59,10 +57,6 @@ def plot_frustrum(cameras, inters):
         ax.plot([ax_mins[0], ax_maxs[0]], [0, 0], [0, 0], color='red')
         ax.plot([0, 0], [ax_mins[0], ax_maxs[0]], [0, 0], color='green')
         ax.plot([0, 0], [0, 0], [ax_mins[0], ax_maxs[0]], color='blue')
-
-        nonlocal fig
-        for txt in fig.texts:
-            txt.remove()
         fig.tight_layout()
 
     def plot_vecs(vecs, origin, color):
@@ -76,20 +70,28 @@ def plot_frustrum(cameras, inters):
                 color=color
             )
 
-    def plot_intersection(ax):        
+    def plot_intersection(ax):
+        nonlocal visibility
+        if (not visibility['compute_intersection']):
+            return
+        
+        intersControl.update()                    
         views = ','.join([str(c.view_id) for c in inters.active_cameras])
         points, hull, score = inters.points, inters.hull, inters.score
         if not len(points):
             s = 'views=%s\ni_score=%.2f\nview_matches=%s'
             s = s % (views, score,  inters.get_match())
-            plt.figtext(.4, .025, s) 
+            nonlocal fig_txt
+            if fig_txt:
+                fig_txt.remove()            
+            fig_txt = plt.figtext(.4, .025, s) 
             return
         
         points = np.array([list(point) for point in points])
-        if visibility[labels.index('inters_hull')]:
+        if visibility['inters_hull']:
             ax.plot_trisurf(points[:,0], points[:,1], points[:,2], triangles=hull.simplices, edgecolor='Gray')
             
-        if visibility[labels.index('inters_points')]:
+        if visibility['inters_points']:
             ix, iy, iz = [p[0] for p in points],  [p[1] for p in points],  [p[2] for p in points]            
             ax.scatter(ix, iy, iz, color='black', s=200, marker='o')            
             
@@ -115,10 +117,11 @@ def plot_frustrum(cameras, inters):
         )
             
     def plot_active_camera_origins():
-        active_origins = [c.curr_origin for c in inters.active_cameras]
         nonlocal active_camera_scatter
+        nonlocal ax1
+        
+        active_origins = [c.curr_origin for c in inters.active_cameras]
         if active_camera_scatter:
-            print(active_camera_scatter)
             active_camera_scatter.remove()
         active_camera_scatter = ax1.scatter(
             [o[0] for o in active_origins],
@@ -138,41 +141,25 @@ def plot_frustrum(cameras, inters):
         fig_txt = plt.figtext(.4, .025, s)
         #fig.canvas.draw_idle()        
 
-    def plot1():
-        reset_axes(ax1)
-        plot_view_poses(ax1)
-        plot_active_camera_origins()
-        #fig.canvas.draw_idle()
-
     def plot2():
         reset_axes(ax2)
         plot_cameras()
-        plot_intersection(ax2)
         #fig.canvas.draw_idle()
         
     def checkbox_update(label):
-        index = labels.index(label)
-        visibility[index] = not visibility[index]
-        intersControl.use_cpp = visibility[-1]
+        visibility[label] = not visibility[label]
+        intersControl.use_cpp = visibility['use_cpp']
         plot2()
         
     check.on_clicked(checkbox_update)
         
     intersControl = IntersControl(cameras, inters)
-    intersControl.use_cpp = visibility[-1]
-
-    def oninters(val):
-        nonlocal intersControl
-        intersControl.update(val)
-        plot_data()
-        plot2()
-        fig.canvas.draw_idle()            
-    
-    b_inters.on_clicked(intersControl.update)
+    intersControl.use_cpp = visibility['use_cpp']
 
     def onnext(val):
         nonlocal intersControl
-        intersControl.incrementAndUpdate(val)
+        nonlocal visibility
+        intersControl.incrementAndUpdate(visibility['compute_intersection'])
         plot_active_camera_origins()
         plot_data()
         plot2()
@@ -192,14 +179,25 @@ def plot_frustrum(cameras, inters):
             inters.active_cameras[1] = cameras[idx]
         if len(inters.active_cameras) == 2:
             print(inters.active_cameras[0], inters.active_cameras[1])
+
         plot_active_camera_origins()
+        
+        reset_axes(ax2)
+        plot_cameras()
+        plot_intersection(ax2)
         plot_data()
-        plot2()
+        
         fig.canvas.draw_idle()        
         
     fig.canvas.mpl_connect('pick_event', onpick)
-        
-    plot1()
-    plot2()
+
+    plot_view_poses(ax1)
+    plot_active_camera_origins()
+    
+    reset_axes(ax2)
+    plot_cameras()
+    plot_intersection(ax2)
+    plot_data()
+    
     fig.canvas.draw_idle()    
     plt.show()    

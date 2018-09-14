@@ -40,3 +40,14 @@ def get_camera_serial_number(project, instance, client, site, session):
     ])
     return [r for r in result][0]
 
+def get_sim_transform(project, instance, client, site, session):
+    defaults = {
+        'Site': site,
+        'Session': session
+    }
+    ss = SolveSessions(project, instance, client, defaults)
+    result = ss.get_select_rows([
+        'Orientation', 'Origin', 'Scale'
+    ])
+    return [r for r in result][0]
+

@@ -159,7 +159,7 @@ def plot_frustrum(cameras, inters):
         plot_intersection()
         fig.canvas.draw_idle()
         
-    intersControl = IntersControl(cameras, inters, plot2)
+    intersControl = IntersControl(cameras, inters)
 
     def checkbox_update(label):
         index = labels.index(label)

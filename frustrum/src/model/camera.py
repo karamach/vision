@@ -62,10 +62,13 @@ class Camera(object):
             [0, 0, frust_range[0]],            
         ]
                 
-    def pose(self, ypr, xyz):
+    def pose(self, ypr, xyz, scale=1):
+   
         self.unit_frust = Camera._update_unitfrust(self.h_ang, self.v_ang)
         self.min_frust, self.max_frust = Camera._update_frust(self.frust_range, self.unit_frust)
-        [o, min_f, max_f] = [self.origin, self.min_frust, self.max_frust]
+        
+        #[o, min_f, max_f] = [self.origin, self.min_frust, self.max_frust]
+        [o, min_f, max_f] = [self.curr_origin, self.curr_min_frust, self.curr_max_frust]
         [o], min_f, max_f = P.rot([o], ypr), P.rot(min_f, ypr), P.rot(max_f, ypr)
         [o], min_f, max_f =  P.trans([o], xyz), P.trans(min_f, xyz),  P.trans(max_f, xyz)
         
@@ -76,6 +79,7 @@ class Camera(object):
         self.curr_axes_points = a_points
         self.curr_origin, self.curr_min_frust, self.curr_max_frust = o, min_f, max_f
         self.curr_ypr, self.curr_xyz = ypr, xyz
+        
         return o, min_f, max_f
 
     def pose_str(self):
@@ -95,7 +99,7 @@ class Camera(object):
         )
 
     @staticmethod
-    def load_cameras(intrinsics, gps_data, fov_dist):
+    def load_cameras_gps(intrinsics, gps_data, fov_dist):
 
         def create_camera(view_id, fx, fy, h, w, pitch, roll, yaw, x, y, z, d):
             h_ang = 2*math.atan(1/(2*fx))
@@ -118,3 +122,26 @@ class Camera(object):
         Camera.view_ids = [c.view_id for c in cameras]
         return Camera.view_cameras
         
+    @staticmethod
+    def load_cameras_solve(intrinsics, solve_pose_data, fov_dist, orientation, origin, scale):
+
+        def create_camera(view_id, fx, fy, h, w, yaw, pitch, roll, x, y, z, d, origin, scale):
+            h_ang = 2*math.atan(1/(2*fx))
+            v_ang = h_ang*h/w
+            angs = [h_ang, v_ang]
+            frust_range = [1, d]
+            ypr = [yaw, pitch, roll]
+            xyz = [x, y, z]
+            camera = Camera(frust_range, angs, view_id=int(view_id))
+            print(camera.view_id)
+            print('before solve  pose .. ', camera.curr_origin)
+            camera.pose([0, 0, 0], xyz)
+            print('after solve pose .. ', camera.curr_origin, xyz)
+            camera.pose(ypr, [0, 0, 0])
+            print('after sim  rot .. ', camera.curr_origin, ypr)
+            return camera
+
+        cameras = [create_camera(int(r[0]), *intrinsics, *orientation, *r[1],  fov_dist, origin, 1) for r in solve_pose_data]
+        Camera.view_cameras = dict([(c.view_id, c) for c in cameras])
+        Camera.view_ids = [c.view_id for c in cameras]
+        return Camera.view_cameras

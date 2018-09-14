@@ -1,13 +1,12 @@
-from view.frustum import *
+from view.similarity_transform_validation import *
 
 import argparse
 
 from utils.db.gps import *
-from utils.db.solve_sessions import *
+from utils.db.solve_view_poses import *
 from utils.db.asseted_camera_calibrations import *
-from utils.db.view_feature_matches import *
+from utils.db.solve_sessions import *
 
-from model.inters import Inters
 from model.camera import Camera
 
 # --site GUADALUPE_SPILLWAY --session 20180815
@@ -22,26 +21,31 @@ if '__main__' == __name__:
     parser.add_argument('--client', required=False, default='demo_assets')
     parser.add_argument('--site', required=True)
     parser.add_argument('--session', required=True)
-    parser.add_argument('--fov_dist', required=False, default=20)
     args = parser.parse_args()
 
     # gps data for cameras
     gps_data = get_gps_data(args.project, args.instance, args.client, args.site, args.session)
-    
+
+    # solve data for cameras
+    solve_pose_data = get_solve_pose_data(args.project, args.instance, args.client, args.site, args.session)
+        
     # camera intrinsics
     [camera_serial_number] = get_camera_serial_number(args.project, args.instance, args.client, args.site, args.session)
     intrinsics = get_camera_intrinsics(args.project, args.instance, args.client, args.site, args.session, camera_serial_number)
 
-    # view match data
-    view_matches = get_view_matches(args.project, args.instance, args.client, args.site, args.session)
+    # get similarity transform
+    [orientation, origin, scale] = get_sim_transform(args.project, args.instance, args.client, args.site, args.session)
+    print(orientation, origin, scale)
 
-    # load cameras
-    view_cameras = Camera.load_cameras_gps(intrinsics, gps_data, args.fov_dist)
+    # load cameras with gps poses
+    view_cameras_gps = Camera.load_cameras_gps(intrinsics, gps_data, 10)
 
-    # Setup intersection object
-    [view1, view2] = sorted(view_cameras.keys())[:2]
-    inters = Inters(view_matches)
-    inters.active_cameras = [view_cameras[view1], view_cameras[view2]]
+    # load cameras with solve poses
+    view_cameras_solve = Camera.load_cameras_solve(intrinsics, solve_pose_data, 2, orientation, origin, scale)
+
+    view_ids_gps = set(view_cameras_gps.keys())
+    view_ids_solve = set(view_cameras_solve.keys())
+    view_ids = sorted(list(view_ids_gps.intersection(view_ids_solve)))[:5]
     
-    plot_frustrum(list(view_cameras.values()), inters)
+    #plot_poses([view_cameras_gps[view_id] for view_id in view_ids], [view_cameras_solve[view_id] for view_id in view_ids])
     
