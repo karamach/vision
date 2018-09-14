@@ -12,26 +12,19 @@ class Camera(object):
 
     def __init__(self, frust_range, angs, color='black', view_id=0):
         self.view_id = view_id
-        self.origin = [0, 0, 0]
+        self.origin = [0, 0, 0, 1]
         self.h_ang = angs[0]
         self.v_ang = angs[1]
         self.color = color
         self.unit_frust = Camera._update_unitfrust(self.h_ang, self.v_ang)
         self.frust_range = frust_range
         self.axes_points = [
-            [self.frust_range[0], 0, 0],
-            [0, self.frust_range[0], 0],
-            [0, 0, self.frust_range[0]],            
+            [self.frust_range[0], 0, 0, 1],
+            [0, self.frust_range[0], 0, 1],
+            [0, 0, self.frust_range[0], 1],            
         ]
         self.min_frust, self.max_frust = Camera._update_frust(self.frust_range, self.unit_frust)
-
-        self.curr_axes_points = self.axes_points
-        self.curr_origin = self.origin
-        self.curr_min_frust = self.min_frust
-        self.curr_max_frust = self.max_frust
-
-        self.curr_ypr = [0, 0, 0]
-        self.curr_xyz = [0, 0, 0]
+        self.transform = np.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1 ]])
 
     @staticmethod
     def getNextViewId(view_id):
@@ -50,25 +43,54 @@ class Camera(object):
         
     @staticmethod
     def _update_frust(frust_range, unit_frust):
-        min_frust = [frust_range[0]*p for p in unit_frust]
-        max_frust = [frust_range[1]*p for p in unit_frust]
+        min_frust = np.array([frust_range[0]*p for p in unit_frust])
+        max_frust = np.array([frust_range[1]*p for p in unit_frust])
+        min_frust = np.column_stack((min_frust, [1, 1, 1, 1]))
+        max_frust = np.column_stack((max_frust, [1, 1, 1, 1]))
         return min_frust, max_frust
 
     @staticmethod
     def _update_axes_points(frust_range):
         return [
-            [frust_range[0], 0, 0],
-            [0, frust_range[0], 0],
-            [0, 0, frust_range[0]],            
+            [frust_range[0], 0, 0, 1],
+            [0, frust_range[0], 0, 1],
+            [0, 0, frust_range[0], 1],            
         ]
-                
-    def pose(self, ypr, xyz, scale=1):
+
+    def getOrigin(self):
+        return np.dot(self.transform, self.origin)
+
+    def getFrustums(self):
+        min_f = [np.dot(self.transform, p) for p in self.min_frust]
+        max_f = [np.dot(self.transform, p) for p in self.max_frust]        
+        return min_f, max_f
+
+    def getAxesPoints(self):
+        return [np.dot(self.transform, p) for p in self.axes_points]
+
+    def getXYZ(self):
+        return P.xyz(self.transform)
+
+    def getYPR(self):
+        return P.ypr(self.transform)
+    
+    def pose(self, ypr, xyz):
+        c_ypr, c_xyz = P.ypr(self.transform), P.xyz(self.transform)
+        ypr = [a1-a2 for a1, a2 in zip(ypr, c_ypr)]
+        xyz = [p1-p2 for p1, p2 in zip(xyz, c_xyz)]
+        
+        self.transform = np.dot( P.transform(ypr, xyz), self.transform)
+        self.unit_frust = Camera._update_unitfrust(self.h_ang, self.v_ang)
+        self.min_frust, self.max_frust = Camera._update_frust(self.frust_range, self.unit_frust)
+        self.axes_points = Camera._update_axes_points(self.frust_range)
+        
+    def pose1(self, ypr, xyz, scale=1):
    
         self.unit_frust = Camera._update_unitfrust(self.h_ang, self.v_ang)
         self.min_frust, self.max_frust = Camera._update_frust(self.frust_range, self.unit_frust)
         
-        #[o, min_f, max_f] = [self.origin, self.min_frust, self.max_frust]
-        [o, min_f, max_f] = [self.curr_origin, self.curr_min_frust, self.curr_max_frust]
+        [o, min_f, max_f] = [self.origin, self.min_frust, self.max_frust]
+        #[o, min_f, max_f] = [self.curr_origin, self.curr_min_frust, self.curr_max_frust]
         [o], min_f, max_f = P.rot([o], ypr), P.rot(min_f, ypr), P.rot(max_f, ypr)
         [o], min_f, max_f =  P.trans([o], xyz), P.trans(min_f, xyz),  P.trans(max_f, xyz)
         

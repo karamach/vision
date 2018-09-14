@@ -15,10 +15,12 @@ class CameraTransControl(object):
         self.pos_idx = pos_idx
 
     def update(self, val):
-        xyz = self.camera.curr_xyz
+        ypr = self.camera.getYPR()
+        xyz = self.camera.getXYZ()
         xyz[self.pos_idx] = val
-        self.camera.pose(self.camera.curr_ypr, xyz)
-        self.callback()
+        self.camera.pose(ypr, xyz)
+        if self.callback:
+            self.callback()
 
 class CameraRotControl(object):
 
@@ -28,7 +30,9 @@ class CameraRotControl(object):
         self.angle_idx = angle_idx
 
     def update(self, val):
-        ypr = self.camera.curr_ypr
+        ypr = self.camera.getYPR()
+        xyz = self.camera.getXYZ()
         ypr[self.angle_idx] = math.radians(val)
-        self.camera.pose(ypr, self.camera.curr_xyz)
-        self.callback()
+        self.camera.pose(ypr, xyz)
+        if self.callback:
+            self.callback()

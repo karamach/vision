@@ -15,5 +15,6 @@ class CameraFrustControl(object):
 
     def update(self, val):
         self.camera.frust_range[self.frust_idx] = val
-        self.camera.pose(self.camera.curr_ypr,  self.camera.curr_xyz)
-        self.callback()
+        self.camera.pose([0, 0, 0], [0, 0, 0])
+        if self.callback:
+            self.callback()

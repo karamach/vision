@@ -32,14 +32,14 @@ def create_slider_axes(fig):
     axes = [fig.add_axes(a, facecolor='lightgoldenrodyellow') for a in s_axes]
     return axes    
 
-def create_sliders(fig, ax_min, ax_max, s_axes, names):
+def create_sliders(fig, ax_min, ax_max, s_axes, names, init):
     
     sliders = [
-        Slider(a, names[i], ax_min, ax_max, valinit=0, valstep=1)
+        Slider(a, names[i], ax_min, ax_max, valinit=init[i], valstep=1)
         for i, a in enumerate(s_axes[:6])
     ]
     sliders += [
-        Slider(a, names[i+6], -180, +180, valinit=0, valstep=1)
+        Slider(a, names[i+6], -180, +180, valinit=init[i], valstep=1)
         for i, a in enumerate(s_axes[6:12])
     ]
     sliders += [
@@ -52,7 +52,7 @@ def create_sliders(fig, ax_min, ax_max, s_axes, names):
     ]
     return sliders
 
-def create_camera_controls(cameras, callback):
+def create_camera_controls(cameras, callback=None):
     cameraControls = [
         CameraTransControl(cameras[int(i/3)], i%3, callback) for i in range(6)
     ]
@@ -70,7 +70,7 @@ def create_camera_controls(cameras, callback):
 
 def plot_frustrum(cameras, inters):
 
-    fig = plt.figure(figsize=(20,20), dpi=100)
+    fig = plt.figure(figsize=(10,6), dpi=100)
     gs = gridspec.GridSpec(1, 2, width_ratios=[1, 4])
     ax2 = plt.subplot(gs[1], projection='3d')
     ax_mins = [-40, -20]
@@ -93,8 +93,10 @@ def plot_frustrum(cameras, inters):
         'c1_yaw', 'c1_pitch', 'c1_roll', 'c2_yaw', 'c2_pitch', 'c2_roll',
         'c1_minf', 'c1_maxf', 'c2_minf', 'c2_maxf', 'c1_ha', 'c1_va', 'c2_ha', 'c2_va'
     ]
-    sliders = create_sliders(fig, ax_mins[1], ax_maxs[1], slider_axes, names)
-
+    init = [0 for i in range(12)]
+    sliders = create_sliders(fig, ax_mins[1], ax_maxs[1], slider_axes, names, init)
+    cameraControls = create_camera_controls(cameras)
+    
     # fig texts
     fig_txt = []
     
@@ -109,21 +111,10 @@ def plot_frustrum(cameras, inters):
         for txt in fig.texts:
             txt.remove()
         fig.tight_layout()
-        
-
-    def plot_controls():
-        if not visibility[labels.index('show_controls')]:
-            for s in slider_axes:
-                s.set_visible(False)
-        else:
-            for s in slider_axes:
-                s.set_visible(True)
-        b_axes.set_visible(True)
-        
 
     def plot_vecs(vecs, origin, color):
         for i, v in enumerate(vecs):                
-            [x, y, z] = v
+            [x, y, z, _] = v
             ax2.plot([origin[0]] + [x], [origin[1]] + [y], [origin[2]] + [z], color=color, linestyle='--')        
             ax2.plot(
                 [v[0] for v in vecs] + [vecs[0][0]],
@@ -150,14 +141,52 @@ def plot_frustrum(cameras, inters):
             
     def plot_cameras():
         for camera, col in zip(inters.active_cameras, ['cyan', 'magenta']):
-            plot_vecs(camera.curr_min_frust, camera.curr_origin, col)
-            plot_vecs(camera.curr_max_frust, camera.curr_origin, col)
+            origin = camera.getOrigin()
+            min_f, max_f = camera.getFrustums()
+            plot_vecs(min_f, origin, col)
+            plot_vecs(max_f, origin, col)
+
+    def plot_controls():
+        nonlocal sliders
+        nonlocal cameras
+        nonlocal cameraControls
+
+        xyzs = [c.getXYZ() for c in cameras]
+        yprs = [c.getYPR() for c in cameras]
+
+        def no_callback(val):
+            pass
+        
+        # slider doesnt have a way to change value without
+        # callback. So disable callbacks first
+        for s in sliders:        
+            s.on_changed(no_callback)           
+
+        # Make slider reflect current pose
+        for s, v in zip(sliders[:3], xyzs[0]):
+            s.set_val(v)
+        for s, v in zip(sliders[3:6], xyzs[1]):
+            s.set_val(v)
+        for s, v in zip(sliders[6:9], yprs[0]):
+            s.set_val(v)
+        for s, v in zip(sliders[9:12], yprs[1]):
+            s.set_val(v)
+
+        # setup callbacks again
+        for s, c in zip(sliders, cameraControls):        
+            s.on_changed(c.update)
+
                 
     def plot2():
         reset_axes2()
+        plot_controls()
         plot_cameras()
         plot_intersection()
         fig.canvas.draw_idle()
+
+    # setup cameracontrols callback
+    for c in cameraControls:
+        c.callback = plot2
         
     intersControl = IntersControl(cameras, inters)
 
@@ -170,12 +199,9 @@ def plot_frustrum(cameras, inters):
     check.on_clicked(checkbox_update)
         
     b_inters.on_clicked(intersControl.update)
-
-    cameraControls = create_camera_controls(cameras, plot2)   
-    for s, c in zip(sliders, cameraControls):
-        s.on_changed(c.update)
-
+        
     plot2()
+
     plt.show()    
     
 if '__main__' == __name__:

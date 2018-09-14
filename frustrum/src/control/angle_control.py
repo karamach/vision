@@ -16,6 +16,7 @@ class CameraAngleControl(object):
     def update(self, val):
         if self.angle_idx == 0: self.camera.h_ang = val
         else: self.camera.v_ang = val
-        self.camera.pose(self.camera.curr_ypr,  self.camera.curr_xyz)
-        self.callback()
+        self.camera.pose([0, 0, 0],  [0, 0, 0])
+        if self.callback:
+            self.callback()
                         
