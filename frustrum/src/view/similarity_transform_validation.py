@@ -37,12 +37,12 @@ def plot_poses(cameras1, cameras2):
 
     def plot_view_poses(ax, cameras):
                 
-        origins = [c.curr_origin for c in cameras]
-        a_points = [c.curr_axes_points for c in cameras]
-        for o, [x, y, z] in zip(origins, a_points):
-            ax.plot([o[0]] + [x[0]], [o[1]] + [x[1]], [o[2]] + [x[2]], color='red', linestyle='-')        
-            ax.plot([o[0]] + [y[0]], [o[1]] + [y[1]], [o[2]] + [y[2]], color='green', linestyle='-')        
-            ax.plot([o[0]] + [z[0]], [o[1]] + [z[1]], [o[2]] + [z[2]], color='blue', linestyle='-')
+        origins = [c.getOrigin() for c in cameras]
+        a_points = [c.getAxesPoints() for c in cameras]
+        #for o, [x, y, z] in zip(origins, a_points):
+        #    ax.plot([o[0]] + [x[0]], [o[1]] + [x[1]], [o[2]] + [x[2]], color='red', linestyle='-')        
+        #    ax.plot([o[0]] + [y[0]], [o[1]] + [y[1]], [o[2]] + [y[2]], color='green', linestyle='-')        
+        #    ax.plot([o[0]] + [z[0]], [o[1]] + [z[1]], [o[2]] + [z[2]], color='blue', linestyle='-')
                 
         ax.scatter(
             [o[0] for o in origins],
