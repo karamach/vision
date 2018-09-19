@@ -1,4 +1,9 @@
 import math
+from random import randint
+
+from plyfile import PlyData, PlyElement
+
+from utils.pose import Pose
 
 class GPSUtils(object):
 
@@ -35,8 +40,25 @@ class GPSUtils(object):
         z = alt - calt;
         x = -x if (lon < clon) else x;
         y = -y if (lat < clat) else y;
-        return [x, y, z];    
+        return [x, y, z];
 
+
+class PointCloudUtils:
+
+    @staticmethod
+    def loadPointCloud(ply, origin, orientation, scale, numPoints):
+        plydata = PlyData.read(ply)
+        data =  plydata.elements[0].data    
+        idx = [randint(0, len(data)) for i  in range(numPoints)]
+
+        points = [[data[i][v] for v in ['x', 'y', 'z']] for i in idx]
+        #points = [Pose.sim_transform(point+[1], origin, orientation, scale) for point in points]
+        points = [Pose.curr_pretransform(point+[1], origin, orientation, scale) for point in points]
+        
+        colors = [[data[i]['red'], data[i]['green'], data[i]['blue']] for i in idx]
+        return points, colors
+
+        
 def lmap(f, d):
     return list(map(f, d))
 

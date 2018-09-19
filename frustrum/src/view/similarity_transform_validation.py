@@ -18,12 +18,17 @@ from control.angle_control import CameraAngleControl
 
 import argparse
 
-def plot_poses(cameras1, cameras2):
+def plot_poses(gpsPoints, gpsColors, solvePoints, solveColors,  pointCloudPoints,
+               pointCloudColors):
     
     fig = plt.figure(figsize=(10,6))
-    gs = gridspec.GridSpec(1, 2, width_ratios=[1, 1])
+    gs = gridspec.GridSpec(3, 2, width_ratios=[4, 1])
     ax_mins, ax_maxs = [-40, -20], [40, 20]
-    [ax1, ax2] = [plt.subplot(gs[i], projection='3d') for i in range(2)]
+    
+    ax1 = plt.subplot(gs[:, 0], projection='3d')
+    ax2 = plt.subplot(gs[0, 1], projection='3d')
+    ax3 = plt.subplot(gs[1, 1], projection='3d')
+    ax4 = plt.subplot(gs[2, 1], projection='3d')
 
     def reset_axes(ax):
         ax.clear()
@@ -35,24 +40,40 @@ def plot_poses(cameras1, cameras2):
         ax.plot([0, 0], [0, 0], [ax_mins[0], ax_maxs[0]], color='blue')
         fig.tight_layout()
 
-    def plot_view_poses(ax, cameras):
-                
-        origins = [c.getOrigin() for c in cameras]
-        a_points = [c.getAxesPoints() for c in cameras]
-        #for o, [x, y, z] in zip(origins, a_points):
-        #    ax.plot([o[0]] + [x[0]], [o[1]] + [x[1]], [o[2]] + [x[2]], color='red', linestyle='-')        
-        #    ax.plot([o[0]] + [y[0]], [o[1]] + [y[1]], [o[2]] + [y[2]], color='green', linestyle='-')        
-        #    ax.plot([o[0]] + [z[0]], [o[1]] + [z[1]], [o[2]] + [z[2]], color='blue', linestyle='-')
-                
-        ax.scatter(
-            [o[0] for o in origins],
-            [o[1] for o in origins],
-            [o[2] for o in origins],
-            color='black', s=10, marker='o', picker=5
-        )            
+    def plot_view_poses(ax, points_list, labels, colors_list):
 
-    plot_view_poses(ax1, cameras1)
-    plot_view_poses(ax2, cameras2)
+        for label, points, colors in zip(labels, points_list, colors_list):                
+            ax.scatter(
+                [point[0] for point in points],
+                [point[1] for point in points],
+                [point[2] for point in points],
+                s=2, marker='o', picker=5, facecolors='none', edgecolors=colors, label=label
+            )
+        ax.legend()
+        ax.grid(True)
+
+    def plot_pointcloud_poses(ax, points_list, labels, colors_list):
+
+        for label, points, col in zip(labels, points_list, colors_list):                
+            ax.scatter(
+                [point[0] for point in points],
+                [point[1] for point in points],
+                [point[2] for point in points],
+                c=col
+            )
+        ax.legend()
+        ax.grid(True)
+        
+
+        
+    plot_view_poses(ax2, [gpsPoints], ['gps'], [gpsColors])
+    plot_view_poses(ax3, [solvePoints], ['solve'], [solveColors])
+    if pointCloudPoints and pointCloudColors:
+        plot_view_poses(ax4, [pointCloudPoints], ['pointCloud'], [pointCloudColors])
+    
+    plot_view_poses(ax1, [gpsPoints, solvePoints], ['gps', 'solve'], [gpsColors, solveColors])
+    if pointCloudPoints and pointCloudColors:
+        plot_pointcloud_poses(ax1, [pointCloudPoints], ['pointCloud'], [pointCloudColors])
     
     fig.canvas.draw_idle()    
     plt.show()    

@@ -50,4 +50,4 @@ def get_sim_transform(project, instance, client, site, session):
         'Orientation', 'Origin', 'Scale'
     ])
     return [r for r in result][0]
-
+    

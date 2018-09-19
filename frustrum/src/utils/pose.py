@@ -17,11 +17,43 @@ class Pose:
              R[0][3],
              R[1][3],
              R[2][3]
-        ]            
-            
+        ]
 
     @staticmethod
-    def transform(ypr, xyz, fixed = True):
+    def scale(s, xyzw):
+        scale_matrix = np.array([
+            [s, 0, 0, 0],
+            [0, s, 0, 0],
+            [0, 0, s, 0],
+            [0, 0, 0, 1]
+        ])
+        return np.dot(scale_matrix, xyzw)
+
+    # houdini rpy transform
+    def houdini_rpytransform(xyzw, origin, orientation, scale):
+        xyzw = Pose.trans(origin, xyzw)
+        xyzw = Pose.rot(xyzw, orientation[::-1], True)
+        xyzw = Pose.scale(scale, xyzw)
+        return xyzw
+
+    # current pretransform
+    def curr_pretransform(xyzw, origin, orientation, scale):
+        xyzw = Pose.trans(origin, xyzw)
+        xyzw = Pose.rot(xyzw, orientation, True)
+        xyzw = Pose.scale(scale, xyzw)
+        return xyzw
+
+    def sim_transform(xyzw, origin, orientation, scale):
+        xyzw = Pose.rot(xyzw, orientation, True)
+        xyzw = Pose.trans(origin, xyzw)
+        xyzw = Pose.scale(scale, xyzw)
+        return xyzw
+    
+
+    # get a homogenous transform comprising a rotation ypr
+    # and translation xyzw
+    @staticmethod
+    def transform(ypr, t, fixed = True):
 
         [y, p, r] = ypr
         
@@ -47,18 +79,23 @@ class Pose:
         ])
 
         R = roll(r).dot(pitch(p).dot(yaw(y))) if fixed else yaw(y).dot(pitch(p).dot(roll(r)))
-        return np.vstack([np.column_stack((R, xyz)), [0, 0, 0, 1]])
+        H = np.column_stack((R, t))
+        H = np.vstack([H, [0, 0, 0, 1]])
+        return H
     
 
-    # Body-Y-P-R sequence implies, yaw followed by pitch followed by roll wrt body frame each time and is computed as RyRpRr
-    # World-Y-P-R sequence implies, yaw followed by pitch followed by roll wrt world frame each time and is computed as RrRpRy
-    # So it can be seen Body-Y-P-R = World-R-P-Y
-    
+    # Body-Y-P-R sequence implies, yaw followed by pitch followed by roll
+    # wrt body frame each time and is computed as RyRpR World-Y-P-R sequence
+    # implies, yaw followed by pitch followed by roll wrt world frame each
+    # time and is computed as RrRpRy
+    # So it can be seen Body-Y-P-R = World-R-P-Y    
     # yaw pitch roll rotation in that sequence
-    # (Note there are 12 possible rotations ypr, yrp, pyr, pry, rpy, ryp, ypy, yry, rpr, ryr, pyp, prp)
-    # If you take instrinsic and extrinsic (rotation wrt fixed or current frame), there are 12 more 
+    # (Note there are 12 possible rotations ypr, yrp, pyr, pry, rpy, ryp, ypy,
+    # yry, rpr, ryr, pyp, prp)
+    # If you take instrinsic and extrinsic (rotation wrt fixed or current frame),
+    # there are 12 more 
     @staticmethod
-    def rot(points, ypr, intrinsic=False):
+    def rot(xyzw, ypr, relative=False):
 
         [y, p, r] = ypr
         
@@ -83,13 +120,22 @@ class Pose:
                 [0, math.sin(gamma), math.cos(gamma)]
         ])
 
-        R = yaw(y).dot(pitch(p).dot(roll(r))) if intrinsic else roll(r).dot(pitch(p).dot(yaw(y)))
-        H = np.vstack([np.column_stack((R, [0, 0, 0])), [0, 0, 0, 1]])
-        return [np.dot(H, point) for point in points]
+        def extrinsic(y, p, r):
+            return roll(r).dot(pitch(p).dot(yaw(y)))
+
+        def intrinsic(y, p, r):
+            return yaw(y).dot(pitch(p).dot(roll(r)))
+
+        R = intrinsic(y, p, r) if relative else extrinsic(y, p, r)
+        H = np.vstack([R, [0, 0, 0]])
+        H = np.column_stack((H, [0, 0, 0, 1]))
+        return np.dot(H, xyzw)
         
-    def trans(points, xyz):
-        [x, y, z] = xyz
-        return [point + np.array([x, y, z]) for point in points]
+    def trans(t, xyzw):
+        R = np.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]])
+        H = np.column_stack((R, t))                            
+        H = np.vstack([H, [0, 0, 0, 1]])
+        return np.dot(H, xyzw)
 
     @staticmethod
     def q2ypr(x, y, z, w):

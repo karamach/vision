@@ -10,7 +10,7 @@ class Camera(object):
     view_cameras = {}
     view_ids = []
 
-    def __init__(self, frust_range, angs, view_id=0, xyz=[0, 0, 0, 1], scale=1,  color='black'):
+    def __init__(self, frust_range, angs, view_id=0, xyz=[0, 0, 0, 1], color='black'):
         self.view_id = view_id
         self.origin = xyz
         self.h_ang = angs[0]
@@ -25,7 +25,6 @@ class Camera(object):
         ]
         self.min_frust, self.max_frust = Camera._update_frust(self.frust_range, self.unit_frust)
         self.transform = np.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1 ]])
-        self.scale = scale
 
     @staticmethod
     def getNextViewId(view_id):
@@ -59,7 +58,7 @@ class Camera(object):
         ]
 
     def getOrigin(self):
-        return self.scale*np.dot(self.transform, self.origin)
+        return np.dot(self.transform, self.origin)
 
     def getFrustums(self):
         min_f = [np.dot(self.transform, p) for p in self.min_frust]
@@ -137,17 +136,16 @@ class Camera(object):
             v_ang = h_ang*h/w
             angs = [h_ang, v_ang]
             frust_range = [1, d]
-            xyz = xyz + [1]
+            xyzw = xyz + [1]
 
-            [xyz] = P.rot([xyz], ypr, True)
+            # meaningless transform
+            xyzw = P.rot(xyzw, ypr, True)
             
-            #xyz = [v1+v2 for v1, v2 in zip(xyz, origin + [1])]
-            #[xyz] = P.rot([xyz], orientation[::-1])
-
-            [xyz] = P.rot([xyz], orientation, True)
-            xyz = [v1+v2 for v1, v2 in zip(xyz, origin + [1])]            
+            #xyzw = P.houdini_rpytransform(xyzw, origin, orientation, scale)
+            #xyzw = P.curr_pretransform(xyzw, origin, orientation, scale)
+            xyzw = P.sim_transform(xyzw, origin, orientation, scale)
+            camera = Camera(frust_range, angs, int(view_id), xyzw)
             
-            camera = Camera(frust_range, angs, int(view_id), xyz, scale)
             return camera
         
         # r[2] is in the format x, y, z, w 
