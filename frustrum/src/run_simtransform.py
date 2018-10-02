@@ -11,30 +11,27 @@ from utils.db.solve_sessions import *
 from model.camera import Camera
 
 from utils.pose import Pose
+from utils.sim_transform import *
 from utils.utils import PointCloudUtils
 
-#from utils.sim_transform import *
-
-# --site PITTSBURGH --session 180329 --client prenav_assets
-# --site GUADALUPE_SPILLWAY --session 20180815_1
-# --site VESONA_DAM --session 20180815_1
-
+# --site PITTSBURGH --session 180329 --client prenav_assets --ply /v/buckets/prenav-datasets/PITTSBURGH/180329/WORK/DENSE_PLY/001/dense_0_1_001.ply
+# --site GUADALUPE_SPILLWAY --session 20180815_1 --ply /v/buckets/pn_demo_assets/GUADALUPE_SPILLWAY/20180815_1/WORK/POINTCLOUD/001/dense_depth.000.ply
+# --site VESONA_DAM --session 20180815_1 --ply /v/buckets/pn_demo_assets/VESONA_DAM/20180815_1/WORK/POINTCLOUD/001/dense_depth.000.ply
 def compute_sim_transform(gps_data, solve_pose_data):
     
     gps_views, gps_trans_data = [r[0] for r in gps_data], [r[4:] for r in gps_data]
     solve_views, solve_data = [r[0] for r in solve_pose_data], [r[1:] for r in solve_pose_data]
 
-    def applyMeaninglessTransform(xyz, quat):
-        [xyz_t] = Pose.rot([xyz + [1]], Pose.q2ypr(*quat), True)
-        return xyz_t[:3]
+    def applyMeaninglessTransform(xyz, quat):        
+        xyzw = Pose.rot(xyz + [1], Pose.q2ypr(*quat), True)
+        return xyzw[:3]
 
-    solve_data = [applyMeaninglessTransform(pose[0], pose[1])  for pose in solve_data]
+    #solve_data = [applyMeaninglessTransform(pose[0], pose[1])  for pose in solve_data]
     
     transform = compute_transform(gps_views, gps_trans_data, solve_views, solve_data)
     transform = [v for i, v in enumerate(transform)]
     [orientation, origin, scale] = [transform[:3], transform[3:6], transform[6]]
     return [orientation, origin, scale]
-                
 
 if '__main__' == __name__:
 
@@ -52,9 +49,11 @@ if '__main__' == __name__:
 
     # solve data for cameras [[view_id, [position(x, y, z)], [orientation(x, y, z, w)]], .. ]
     solve_pose_data = get_solve_pose_data(args.project, args.instance, args.client, args.site, args.session)
-        
+    
     # get similarity transform from db
-    [orientation, origin, scale] = get_sim_transform(args.project, args.instance, args.client, args.site, args.session)
+    #[orientation, origin, scale] = get_sim_transform(args.project, args.instance, args.client, args.site, args.session)
+    [orientation, origin, scale] = compute_sim_transform(gps_data, solve_pose_data)
+    print(orientation, origin, scale)
 
     # camera intrinsics
     [camera_serial_number] = get_camera_serial_number(args.project, args.instance, args.client, args.site, args.session)
@@ -73,7 +72,7 @@ if '__main__' == __name__:
 
     gpsPoints = [c.getOrigin() for c in [view_cameras_gps[view_id] for view_id in view_ids]]
     solvePoints = [c.getOrigin() for c in [view_cameras_solve[view_id] for view_id in view_ids]]    
-    (pointCloudPoints, pointCloudColors) = PointCloudUtils.loadPointCloud(args.ply, origin, orientation, scale, 5000) if args.ply else (None, None)
+    (pointCloudPoints, pointCloudColors) = PointCloudUtils.loadPointCloud(args.ply, origin, orientation, scale, 100) if args.ply else (None, None)
     
     plot_poses(
         gpsPoints, len(gpsPoints)*['red'],

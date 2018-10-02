@@ -10,7 +10,7 @@ class Camera(object):
     view_cameras = {}
     view_ids = []
 
-    def __init__(self, frust_range, angs, view_id=0, xyz=[0, 0, 0, 1], color='black'):
+    def __init__(self, frust_range, angs, view_id=0, xyz=[0, 0, 0, 1], color='black', means = []):
         self.view_id = view_id
         self.origin = xyz
         self.h_ang = angs[0]
@@ -75,55 +75,38 @@ class Camera(object):
         return P.ypr(self.transform)
     
     def pose(self, ypr, xyz):
-        #c_ypr, c_xyz = P.ypr(self.transform), P.xyz(self.transform)
-        #ypr = [a1-a2 for a1, a2 in zip(ypr, c_ypr)]
-        #xyz = [p1-p2 for p1, p2 in zip(xyz, c_xyz)]
-        
         self.transform = np.dot(P.transform(ypr, xyz), self.transform)
         self.unit_frust = Camera._update_unitfrust(self.h_ang, self.v_ang)
         self.min_frust, self.max_frust = Camera._update_frust(self.frust_range, self.unit_frust)
         self.axes_points = Camera._update_axes_points(self.frust_range)
-        
-    def pose1(self, ypr, xyz):
-   
-        self.unit_frust = Camera._update_unitfrust(self.h_ang, self.v_ang)
-        self.min_frust, self.max_frust = Camera._update_frust(self.frust_range, self.unit_frust)
-        
-        [o, min_f, max_f] = [self.origin, self.min_frust, self.max_frust]
-        #[o, min_f, max_f] = [self.curr_origin, self.curr_min_frust, self.curr_max_frust]
-        [o], min_f, max_f = P.rot([o], ypr), P.rot(min_f, ypr), P.rot(max_f, ypr)
-        [o], min_f, max_f =  P.trans([o], xyz), P.trans(min_f, xyz),  P.trans(max_f, xyz)
-        
-        self.axes_points = Camera._update_axes_points(self.frust_range)
-        a_points = [P.rot([p], ypr)[0] for p in self.axes_points]
-        a_points = [P.trans([p], xyz)[0] for p in a_points]
-        
-        self.curr_axes_points = a_points
-        self.curr_origin, self.curr_min_frust, self.curr_max_frust = o, min_f, max_f
-        self.curr_ypr, self.curr_xyz = ypr, xyz
-        
-        return o, min_f, max_f
 
-    @staticmethod
-    def load_cameras_gps(intrinsics, gps_data, fov_dist):
+    # gps_data = [viewid, pitch, roll, yaw, x, y, z]
+    # intrinsics = [fx, fy, h, w]
+    @staticmethod    
+    def load_cameras_gps(intrinsics, gps_data, fov_dist, active_views=None):
 
-        def create_camera(view_id, fx, fy, h, w, pitch, roll, yaw, x, y, z, d):
+        def create_camera(view_id, fx, fy, h, w, pry, xyz, d):
+            [pitch, roll, yaw] = pry
             h_ang = 2*math.atan(1/(2*fx))
             v_ang = h_ang*h/w
             angs = [h_ang, v_ang]
             frust_range = [1, d]
             ypr = [90-yaw if -90 <= yaw<= 180 else -(270+yaw), -pitch, roll]
-            xyz = [x, y, z]
+            xyz = xyz
             camera = Camera(frust_range, angs, view_id=int(view_id))
             camera.pose([math.radians(a) for a in ypr], xyz)
             return camera
         
         def mean(vals):
             return sum(vals)/len(vals)
-        
-        means = mean([g[4] for g in gps_data]), mean([g[5] for g in gps_data]), mean([g[6] for g in gps_data])
-        gps_data = [g[:4] + GPSUtils.convert_latlon_cartesian(*g[4:], *means) for g in gps_data]
-        cameras = [create_camera(int(r[0]), *intrinsics, *r[1:],  fov_dist) for r in gps_data]
+
+        means_input = list(filter(lambda r: int(r[0]) in set(active_views), gps_data)) if active_views else gps_data
+        means = [
+            mean([g[idx] for g in means_input])
+            for idx in [4, 5, 6]
+        ]
+                                                             
+        cameras = [create_camera(int(r[0]), *intrinsics, r[1:4],  GPSUtils.convert_latlon_cartesian(*r[4:7], *means), fov_dist) for r in gps_data]
         Camera.view_cameras = dict([(c.view_id, c) for c in cameras])
         Camera.view_ids = [c.view_id for c in cameras]
         return Camera.view_cameras

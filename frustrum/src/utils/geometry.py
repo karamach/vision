@@ -109,8 +109,8 @@ class Geometry:
             [f[1], f[2], f[6], f[5]],
             [f[0], f[4], f[5], f[1]],
             [f[3], f[7], f[6], f[2]]
-        ]
-        return [[Point3D(x, y, z) for [x, y, z] in points] for points in rect_points]
+        ]        
+        return [[Point3D(x, y, z) for [x, y, z, _] in points] for points in rect_points]
 
     @staticmethod
     def get_frustrum_volume(f, l):

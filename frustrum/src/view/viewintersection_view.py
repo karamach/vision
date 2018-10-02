@@ -27,7 +27,7 @@ import argparse
 def plot_frustrum(cameras, inters):
     
     fig = plt.figure(figsize=(10,6))
-    gs = gridspec.GridSpec(1, 2, width_ratios=[1, 1])
+    gs = gridspec.GridSpec(1, 2, width_ratios=[1, 3])
     ax_mins, ax_maxs = [-40, -20], [40, 20]
     [ax1, ax2] = [plt.subplot(gs[i], projection='3d') for i in range(2)]
 
@@ -61,7 +61,7 @@ def plot_frustrum(cameras, inters):
 
     def plot_vecs(vecs, origin, color):
         for i, v in enumerate(vecs):                
-            [x, y, z] = v
+            [x, y, z, w] = v
             ax2.plot([origin[0]] + [x], [origin[1]] + [y], [origin[2]] + [z], color=color, linestyle='--')
             ax2.plot(
                 [v[0] for v in vecs] + [vecs[0][0]],
@@ -97,17 +97,20 @@ def plot_frustrum(cameras, inters):
             
     def plot_cameras():
         for camera, col in zip(inters.active_cameras, ['cyan', 'magenta']):
-            plot_vecs(camera.curr_min_frust, camera.curr_origin, col)
-            plot_vecs(camera.curr_max_frust, camera.curr_origin, col)
-                
+            curr_min_frust, curr_max_frust = camera.getFrustums()
+            plot_vecs(curr_min_frust, camera.getOrigin(), col)
+            plot_vecs(curr_max_frust, camera.getOrigin(), col)
+
+
     def plot_view_poses(ax):
                 
-        origins = [c.curr_origin for c in cameras]
-        a_points = [c.curr_axes_points for c in cameras]
+        origins = [c.getOrigin() for c in cameras]
+        a_points = [c.getAxesPoints() for c in cameras]
         for o, [x, y, z] in zip(origins, a_points):
             ax.plot([o[0]] + [x[0]], [o[1]] + [x[1]], [o[2]] + [x[2]], color='red', linestyle='-')        
             ax.plot([o[0]] + [y[0]], [o[1]] + [y[1]], [o[2]] + [y[2]], color='green', linestyle='-')        
             ax.plot([o[0]] + [z[0]], [o[1]] + [z[1]], [o[2]] + [z[2]], color='blue', linestyle='-')
+
                 
         ax.scatter(
             [o[0] for o in origins],
@@ -120,7 +123,7 @@ def plot_frustrum(cameras, inters):
         nonlocal active_camera_scatter
         nonlocal ax1
         
-        active_origins = [c.curr_origin for c in inters.active_cameras]
+        active_origins = [c.getOrigin() for c in inters.active_cameras]
         if active_camera_scatter:
             active_camera_scatter.remove()
         active_camera_scatter = ax1.scatter(
@@ -128,9 +131,7 @@ def plot_frustrum(cameras, inters):
             [o[1] for o in active_origins],
             [o[2] for o in active_origins],
             c='red', s=50, marker='o', picker=5
-        )
-        #fig.canvas.draw_idle()
-            
+        )            
 
     def plot_data():
         views = ','.join([str(c.view_id) for c in inters.active_cameras])
@@ -139,12 +140,10 @@ def plot_frustrum(cameras, inters):
         if fig_txt:
             fig_txt.remove()
         fig_txt = plt.figtext(.4, .025, s)
-        #fig.canvas.draw_idle()        
 
     def plot2():
         reset_axes(ax2)
         plot_cameras()
-        #fig.canvas.draw_idle()
         
     def checkbox_update(label):
         visibility[label] = not visibility[label]
@@ -169,7 +168,7 @@ def plot_frustrum(cameras, inters):
 
     def onpick(event):
         idx = event.ind[0]
-        [x, y, z] = [int(v) for v in cameras[idx].curr_origin]
+        [x, y, z, w] = [int(v) for v in cameras[idx].getOrigin()]
         if len(inters.active_cameras) == 0:
             inters.active_cameras.append(cameras[idx])
         elif len(inters.active_cameras) == 1:
@@ -187,8 +186,6 @@ def plot_frustrum(cameras, inters):
         plot_intersection(ax2)
         plot_data()
         
-        fig.canvas.draw_idle()        
-        
     fig.canvas.mpl_connect('pick_event', onpick)
 
     plot_view_poses(ax1)
@@ -199,5 +196,4 @@ def plot_frustrum(cameras, inters):
     plot_intersection(ax2)
     plot_data()
     
-    fig.canvas.draw_idle()    
     plt.show()    

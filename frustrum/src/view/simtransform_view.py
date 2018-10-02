@@ -38,6 +38,9 @@ def plot_poses(gpsPoints, gpsColors, solvePoints, solveColors,  pointCloudPoints
         ax.plot([ax_mins[0], ax_maxs[0]], [0, 0], [0, 0], color='red')
         ax.plot([0, 0], [ax_mins[0], ax_maxs[0]], [0, 0], color='green')
         ax.plot([0, 0], [0, 0], [ax_mins[0], ax_maxs[0]], color='blue')
+        ax.set_xlabel('X', fontsize=10)
+        ax.set_ylabel('Y', fontsize=10)        
+        ax.set_ylabel('Z', fontsize=10)        
         fig.tight_layout()
 
     def plot_view_poses(ax, points_list, labels, colors_list):
@@ -49,6 +52,9 @@ def plot_poses(gpsPoints, gpsColors, solvePoints, solveColors,  pointCloudPoints
                 [point[2] for point in points],
                 s=2, marker='o', picker=5, facecolors='none', edgecolors=colors, label=label
             )
+        ax.set_xlabel('X', fontsize=10)
+        ax.set_ylabel('Y', fontsize=10)        
+        ax.set_ylabel('Z', fontsize=10)        
         ax.legend()
         ax.grid(True)
 
@@ -59,12 +65,10 @@ def plot_poses(gpsPoints, gpsColors, solvePoints, solveColors,  pointCloudPoints
                 [point[0] for point in points],
                 [point[1] for point in points],
                 [point[2] for point in points],
-                c=col
+                c=col, label=label
             )
         ax.legend()
-        ax.grid(True)
-        
-
+        ax.grid(True)        
         
     plot_view_poses(ax2, [gpsPoints], ['gps'], [gpsColors])
     plot_view_poses(ax3, [solvePoints], ['solve'], [solveColors])
