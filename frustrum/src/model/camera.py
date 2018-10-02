@@ -101,6 +101,7 @@ class Camera(object):
             return sum(vals)/len(vals)
 
         means_input = list(filter(lambda r: int(r[0]) in set(active_views), gps_data)) if active_views else gps_data
+#        means_input = gps_data
         means = [
             mean([g[idx] for g in means_input])
             for idx in [4, 5, 6]

@@ -1,4 +1,4 @@
-#from control.inters_control import IntersControl
+from control.inters_control import IntersControl
 from view.viewintersection_view import plot_frustrum
     
 import argparse
@@ -50,7 +50,6 @@ if '__main__' == __name__:
     active_views = [1, 2] if not active_views else active_views
     inters.active_cameras = [view_cameras[idx] for idx in active_views]
 
-    plot_frustrum(list(view_cameras.values()), inters)    
-    #IntersControl(view_cameras, inters, True).compute_all_intersections() if not args.ui else plot_frustrum(list(view_cameras.values()), inters)
+    IntersControl(view_cameras, inters, True).compute_all_intersections() if not args.ui else plot_frustrum(list(view_cameras.values()), inters)
     
     

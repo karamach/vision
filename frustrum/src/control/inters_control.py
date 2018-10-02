@@ -1,4 +1,4 @@
-#from viewintersection_py import PyPoint3, PyRot3, PyPose3, PyPoint3List, PnPointList, ViewIntersectionOp    
+from viewintersection_py import PyPoint3, PyRot3, PyPose3, PyPoint3List, PnPointList, ViewIntersectionOp    
 
 import datetime
 import time
@@ -55,7 +55,6 @@ class IntersControl:
             #print(e)
             
     def compute_intersection(self, c1_f, c2_f):
-        '''
         if not self.use_cpp:
             return Geometry.frustrum_intersect(c1_f, c2_f)
 
@@ -73,8 +72,7 @@ class IntersControl:
         ViewIntersectionOp.computeIntersection(f1_points, pose1, f2_points, pose2, pois, True)
         coords = [[v for v in p.get()] for i, p in enumerate(pois)]
         return coords
-        '''
-        return []
+#        return []
             
     def compute_all_intersections(self):
         while self.incrementAndUpdate(True):
