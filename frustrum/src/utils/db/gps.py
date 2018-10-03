@@ -60,10 +60,10 @@ def get_gps_data(project, instance, client, site, session):
     }
     gps = GPS(project, instance, client, 'GPS', defaults)
     result = gps.get_select_rows([
-        'View', 'GimbalPitch', 'GimbalRoll', 'GimbalYaw', 'GPSLatitude', 'GPSLatitudeRef', 'GPSLongitude', 'GPSLongitudeRef', 'RelativeAltitude'
+        'View', 'GPSLatitude', 'GPSLatitudeRef', 'GPSLongitude', 'GPSLongitudeRef', 'RelativeAltitude', 'GimbalYaw', 'GimbalPitch', 'GimbalRoll' 
     ])
 
-    result = lfilter(lambda r: len(r[4]) != 0 and len(r[6]) != 0, result)
-    result = lmap(lambda r: r[:4] + [GPSUtils.dms2dd(r[4], r[5])] + [GPSUtils.dms2dd(r[6], r[7])] + [r[8]], result)
+    result = lfilter(lambda r: r is not None and r[1] is not None and r[2] is not None and len(r[1]) != 0 and len(r[3]) != 0, result)
+    result = lmap(lambda r: [r[0]] + [GPSUtils.dms2dd(r[1], r[2])] + [GPSUtils.dms2dd(r[3], r[4])] + r[5:], result)
     return result
     

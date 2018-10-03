@@ -25,6 +25,8 @@ class Camera(object):
         ]
         self.min_frust, self.max_frust = Camera._update_frust(self.frust_range, self.unit_frust)
         self.transform = np.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1 ]])
+        self.last_xyz = [0, 0, 0]
+        self.last_ypr = [0, 0, 0]
 
     @staticmethod
     def getNextViewId(view_id):
@@ -73,8 +75,13 @@ class Camera(object):
 
     def getYPR(self):
         return P.ypr(self.transform)
+
+    def setLast(self, ypr, xyz):
+        self.last_ypr = ypr
+        self.last_xyz = xyz
     
     def pose(self, ypr, xyz):
+        self.setLast(ypr, xyz)
         self.transform = np.dot(P.transform(ypr, xyz), self.transform)
         self.unit_frust = Camera._update_unitfrust(self.h_ang, self.v_ang)
         self.min_frust, self.max_frust = Camera._update_frust(self.frust_range, self.unit_frust)
@@ -94,21 +101,23 @@ class Camera(object):
             ypr = [90-yaw if -90 <= yaw<= 180 else -(270+yaw), -pitch, roll]
             xyz = xyz
             camera = Camera(frust_range, angs, view_id=int(view_id))
-            camera.pose([math.radians(a) for a in ypr], xyz)
+            camera.setLast([math.radians(a) for a in ypr], xyz)
+            camera.pose(camera.last_ypr, camera.last_xyz)
             return camera
         
         def mean(vals):
             return sum(vals)/len(vals)
 
         means_input = list(filter(lambda r: int(r[0]) in set(active_views), gps_data)) if active_views else gps_data
-#        means_input = gps_data
+        #means_input = gps_data
         means = [
             mean([g[idx] for g in means_input])
-            for idx in [4, 5, 6]
+            for idx in [1, 2, 3]
         ]
-                                                             
-        cameras = [create_camera(int(r[0]), *intrinsics, r[1:4],  GPSUtils.convert_latlon_cartesian(*r[4:7], *means), fov_dist) for r in gps_data]
-        Camera.view_cameras = dict([(c.view_id, c) for c in cameras])
+
+        print('means = ', means)
+        cameras = [create_camera(int(r[0]), *intrinsics, r[4:7],  GPSUtils.convert_latlon_cartesian(*r[1:4], *means), fov_dist) for r in gps_data]
+        Camera.view_cameras = dict([(c.view_id, c) for c in cameras])        
         Camera.view_ids = [c.view_id for c in cameras]
         return Camera.view_cameras
         

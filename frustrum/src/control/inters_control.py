@@ -31,52 +31,46 @@ class IntersControl:
         return True
         
     def update(self, val=None):
-        [c1, c2] = self.inters.active_cameras
-        c1_curr_min_frust, c1_curr_max_frust = c1.getFrustums()
-        c2_curr_min_frust, c2_curr_max_frust = c2.getFrustums()
-        c1_f = c1_curr_min_frust + c1_curr_max_frust
-        c2_f = c2_curr_min_frust + c2_curr_max_frust
-        points = self.compute_intersection(c1_f, c2_f)
-        if not points:
-            self.inters.points = []
-            self.inters.score = 0
-            return
-            
-        self.inters.points = points
-        l1 = abs(c1.frust_range[1] - c2.frust_range[0])
-        l2 = abs(c2.frust_range[1] - c1.frust_range[0])
-
+        points = self.compute_intersection()
+        self.inters.points = [] if not points else points
         self.inters.score = len(self.inters.points)
         #try:
+            #l1 = abs(c1.frust_range[1] - c2.frust_range[0])
+            #l2 = abs(c2.frust_range[1] - c1.frust_range[0])
             #self.inters.hull = ConvexHull(np.array(self.inters.points))
             #self.inters.frust_union_volume =  float(Geometry.get_frustrum_volume(c1_f, l1)) + float(Geometry.get_frustrum_volume(c2_f, l2)) - float(self.inters.hull.volume)
             #self.inters.score = self.inters.hull.volume / self.inters.frust_union_volume
         #except QhullError as e:
             #print(e)
             
-    def compute_intersection(self, c1_f, c2_f):
+    def compute_intersection(self):
+        [c1, c2] = self.inters.active_cameras
+        c1_curr_min_frust, c1_curr_max_frust = c1.getFrustums()
+        c2_curr_min_frust, c2_curr_max_frust = c2.getFrustums()
+        c1_f = c1_curr_min_frust + c1_curr_max_frust
+        c2_f = c2_curr_min_frust + c2_curr_max_frust        
         if not self.use_cpp:
             return Geometry.frustrum_intersect(c1_f, c2_f)
 
-        f1_points = PyPoint3List()
+        [f1_points, f2_points] = [PyPoint3List(), PyPoint3List()]
         for p in c1_f:
             f1_points.push_back(PyPoint3(*p[:3]))
-        pose1 = PyPose3(PyRot3(0, 0, 0), PyPoint3(0, 0, 0))
-        
-        f2_points = PyPoint3List()
         for p in c2_f:
             f2_points.push_back(PyPoint3(*p[:3]))
-        pose2 = PyPose3(PyRot3(0, 0, 0), PyPoint3(0, 0, 0))
+        [pose1, pose2] = [PyPose3(PyRot3(*c.last_ypr), PyPoint3(*c.last_xyz)) for c in [c1, c2]]
 
-        pois = PnPointList()
-        ViewIntersectionOp.computeIntersection(f1_points, pose1, f2_points, pose2, pois, True)
-        coords = [[v for v in p.get()] for i, p in enumerate(pois)]
-        return coords
-#        return []
+        print('[ok][f1_points ..][val=%s]' % str(list(c1_f)))
+        print('[ok][f2_points ..][val=%s]' % str(list(c2_f)))
+        
+        pois = PnPointList()        
+        ViewIntersectionOp.computeIntersection(f1_points, pose1, f2_points, pose2, pois, False)
+        return [[v for v in p.get()] for i, p in enumerate(pois)]
             
     def compute_all_intersections(self):
         while self.incrementAndUpdate(True):
             time.sleep(2)
             print('view1=%06d view2=%06d inters_score=%02d' % (self.inters.active_cameras[0].view_id, self.inters.active_cameras[1].view_id, self.inters.score))
+            print('----------------------------------------')
+
             
             

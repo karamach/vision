@@ -1,4 +1,4 @@
-from view.similarity_transform_validation import *
+from view.simtransform_view import *
 
 import argparse
 import sys
@@ -17,9 +17,10 @@ from utils.utils import PointCloudUtils
 # --site PITTSBURGH --session 180329 --client prenav_assets --ply /v/buckets/prenav-datasets/PITTSBURGH/180329/WORK/DENSE_PLY/001/dense_0_1_001.ply
 # --site GUADALUPE_SPILLWAY --session 20180815_1 --ply /v/buckets/pn_demo_assets/GUADALUPE_SPILLWAY/20180815_1/WORK/POINTCLOUD/001/dense_depth.000.ply
 # --site VESONA_DAM --session 20180815_1 --ply /v/buckets/pn_demo_assets/VESONA_DAM/20180815_1/WORK/POINTCLOUD/001/dense_depth.000.ply
+# --site 1123_9 --session 20180717 --ply /v/buckets/pn_demo_assets/1123_9/20180717/WORK/POINTCLOUD/001/dense_depth.004.ply
 def compute_sim_transform(gps_data, solve_pose_data):
     
-    gps_views, gps_trans_data = [r[0] for r in gps_data], [r[4:] for r in gps_data]
+    gps_views, gps_trans_data = [r[0] for r in gps_data], [r[1:4] for r in gps_data]
     solve_views, solve_data = [r[0] for r in solve_pose_data], [r[1:] for r in solve_pose_data]
 
     def applyMeaninglessTransform(xyz, quat):        

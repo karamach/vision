@@ -27,7 +27,7 @@ import argparse
 def plot_frustrum(cameras, inters):
     
     fig = plt.figure(figsize=(10,6))
-    gs = gridspec.GridSpec(1, 2, width_ratios=[1, 3])
+    gs = gridspec.GridSpec(1, 2, width_ratios=[1, 4])
     ax_mins, ax_maxs = [-40, -20], [40, 20]
     [ax1, ax2] = [plt.subplot(gs[i], projection='3d') for i in range(2)]
 
