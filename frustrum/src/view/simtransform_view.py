@@ -29,7 +29,6 @@ def plot_poses(gpsPoints, gpsColors, solvePoints, solveColors,  pointCloudPoints
     ax2 = plt.subplot(gs[0, 1], projection='3d')
     ax3 = plt.subplot(gs[1, 1], projection='3d')
     ax4 = plt.subplot(gs[2, 1], projection='3d')
-
     def reset_axes(ax):
         ax.clear()
         ax.set_xlabel('X')

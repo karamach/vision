@@ -63,6 +63,7 @@ class Camera(object):
         return np.dot(self.transform, self.origin)
 
     def getFrustums(self):
+        print('TRANFORM -- \n', self.transform)
         min_f = [np.dot(self.transform, p) for p in self.min_frust]
         max_f = [np.dot(self.transform, p) for p in self.max_frust]        
         return min_f, max_f
@@ -82,7 +83,7 @@ class Camera(object):
     
     def pose(self, ypr, xyz):
         self.setLast(ypr, xyz)
-        self.transform = np.dot(P.transform(ypr, xyz), self.transform)
+        self.transform = np.dot(P.transform(ypr, xyz, False), self.transform)
         self.unit_frust = Camera._update_unitfrust(self.h_ang, self.v_ang)
         self.min_frust, self.max_frust = Camera._update_frust(self.frust_range, self.unit_frust)
         self.axes_points = Camera._update_axes_points(self.frust_range)
@@ -92,8 +93,16 @@ class Camera(object):
     @staticmethod    
     def load_cameras_gps(intrinsics, gps_data, fov_dist, active_views=None):
 
-        def create_camera(view_id, fx, fy, h, w, pry, xyz, d):
-            [pitch, roll, yaw] = pry
+        # NED :  north(X)-east(Y)-down(Z)
+        #        Standing on origin facing X, Yaw(L to R about Z), Pitch(Down to Up about Y), Roll(L to R about X)
+        # ENU :  east(X)-north(Y)-up(Z)
+        #        Standing on origin facing X, Yaw(R to L about Z), Pitch(Up to Down about Y), Roll(L to R about X)
+        def ned2enu(ypr):
+            [yaw, pitch, roll] = ypr
+            return [90-yaw if -90 <= yaw<= 180 else -(270+yaw), -pitch, roll]
+
+        def create_camera(view_id, fx, fy, h, w, ypr, xyz, d):
+            [yaw, pitch, roll] = ypr
             h_ang = 2*math.atan(1/(2*fx))
             v_ang = h_ang*h/w
             angs = [h_ang, v_ang]
@@ -101,22 +110,23 @@ class Camera(object):
             ypr = [90-yaw if -90 <= yaw<= 180 else -(270+yaw), -pitch, roll]
             xyz = xyz
             camera = Camera(frust_range, angs, view_id=int(view_id))
-            camera.setLast([math.radians(a) for a in ypr], xyz)
+            camera.setLast([math.radians(a) for a in ypr], xyz)            
             camera.pose(camera.last_ypr, camera.last_xyz)
             return camera
         
         def mean(vals):
             return sum(vals)/len(vals)
 
-        means_input = list(filter(lambda r: int(r[0]) in set(active_views), gps_data)) if active_views else gps_data
-        #means_input = gps_data
+        print('[decimal_view_poses ..]', gps_data)
+        
+        means_input = gps_data
         means = [
             mean([g[idx] for g in means_input])
             for idx in [1, 2, 3]
         ]
 
         print('means = ', means)
-        cameras = [create_camera(int(r[0]), *intrinsics, r[4:7],  GPSUtils.convert_latlon_cartesian(*r[1:4], *means), fov_dist) for r in gps_data]
+        cameras = [create_camera(int(r[0]), *intrinsics, r[4:],  GPSUtils.convert_latlon_cartesian(*r[1:4], *means), fov_dist) for r in gps_data]
         Camera.view_cameras = dict([(c.view_id, c) for c in cameras])        
         Camera.view_ids = [c.view_id for c in cameras]
         return Camera.view_cameras

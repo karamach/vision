@@ -42,14 +42,26 @@ if '__main__' == __name__:
     view_matches = get_view_matches(args.project, args.instance, args.client, args.site, args.session)
 
     # load cameras
-    active_views = [args.viewFrom, args.viewTo] if args.viewFrom and args.viewTo else None
-    view_cameras = Camera.load_cameras_gps(intrinsics, gps_data, args.fov_dist, active_views)
-
-    # Setup intersection object
-    inters = Inters(view_matches)
-    active_views = [1, 2] if not active_views else active_views
-    inters.active_cameras = [view_cameras[idx] for idx in active_views]
-
-    IntersControl(view_cameras, inters, True).compute_all_intersections() if not args.ui else plot_frustrum(list(view_cameras.values()), inters)
-    
+    active_views = [args.viewFrom, args.viewTo] if args.viewFrom and args.viewTo else [1, 2]
+    if args.ui:
+        view_cameras = Camera.load_cameras_gps(intrinsics, gps_data, args.fov_dist, active_views)
+        inters = Inters(view_matches)
+        inters.active_cameras = [view_cameras[idx] for idx in active_views]
+        plot_frustrum(list(view_cameras.values()), inters)        
+    else:
+        viewid_gps = dict([(int(r[0]), r) for r in gps_data])
+        for v1 in range(active_views[0], active_views[0] + len(gps_data)):
+            for v2 in range(active_views[1], active_views[1] + len(gps_data)):
+                v1_data = viewid_gps[v1%len(gps_data)]
+                v2_data = viewid_gps[v2%len(gps_data)]
+                view_cameras = Camera.load_cameras_gps(intrinsics, [v1_data, v2_data], args.fov_dist, active_views)
+                inters = Inters(view_matches)
+                inters.active_cameras = [view_cameras[idx] for idx in [v1%len(gps_data), v2%len(gps_data)]]
+                plot_frustrum(list(view_cameras.values()), inters)        
+                
+                #ctrl = IntersControl(view_cameras, inters, True)
+                #ctrl.update()
+                #print('view1=%06d view2=%06d inters_score=%02d' %
+                #      (ctrl.inters.active_cameras[0].view_id, ctrl.inters.active_cameras[1].view_id, ctrl.inters.score))
+                #print('----------------------------------------')
     

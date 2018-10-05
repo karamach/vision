@@ -17,11 +17,11 @@ def compute_transform(gps_views, gps_data, solve_views, solve_data):
         xyz, quat = s[0], [s[1][3]] + s[1][:3]  # change quat to w,x,y,z
         solve_d[v] = PyPose3(PyRot3(*quat), PyPoint3(*xyz))
 
-    transform, gpsOrigin = DoubleList(), DoubleList()
+    transform = DoubleList()
     op = SimilarityTransformOp(
         yawPrior, transPrior, scalePrior, noiseStd, estParam, estType, applyPreTransform
     );
     with ostream_redirect():
-        ret = op.computeTransformUnnormalized(gps_d, solve_d, transform, gpsOrigin)        
+        ret = op.computeTransformUnnormalized(gps_d, solve_d, transform)        
         return [v for i, v in enumerate(transform)] if ret else None
 

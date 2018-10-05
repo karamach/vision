@@ -27,14 +27,15 @@ import argparse
 def plot_frustrum(cameras, inters):
     
     fig = plt.figure(figsize=(10,6))
-    gs = gridspec.GridSpec(1, 2, width_ratios=[1, 4])
+    gs = gridspec.GridSpec(1, 2, width_ratios=[1, 1])
     ax_mins, ax_maxs = [-40, -20], [40, 20]
     [ax1, ax2] = [plt.subplot(gs[i], projection='3d') for i in range(2)]
 
     # Checkbuttons for visibility control
     rax = plt.axes([0.02, 0.8, 0.1, 0.15])
     labels = ['inters_points', 'inters_hull', 'compute_intersection', 'use_cpp']
-    visibility = dict([(label, False) for label in labels])
+    visibility = dict([(label, True) for label in labels])
+    visibility['inters_hull'] = False
     check = CheckButtons(rax, labels, [visibility[label] for label in labels])
 
     # next button
